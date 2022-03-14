@@ -1,0 +1,354 @@
+[student@workstation ~]$ lab start  manage-reusing 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Adding exercise content ........................................................................................................................................... SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+Desktop  develop-navigator  develop-practices  Documents  Downloads  git-repos  lab_do374  manage-reusing  Music  Pictures  Public  Templates  Videos
+[student@workstation ~]$ cd manage-reusing/
+[student@workstation manage-reusing]$ ls
+ansible.cfg  basic-web.yml  inventory
+[student@workstation manage-reusing]$ ansible-playbook basic-web.yml 
+ERROR! couldn't resolve module/action 'firewalld'. This often indicates a misspelling, missing collection, or incorrect module path.
+
+The error appears to be in '/home/student/manage-reusing/basic-web.yml': line 22, column 7, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+
+    - name: Open access to http
+      ^ here
+[student@workstation manage-reusing]$ ansible-doc  -l | grep firewalld
+[student@workstation manage-reusing]$ podman login hub.lab.example.com 
+Authenticating with existing credentials...
+Existing credentials are valid. Already logged in to hub.lab.example.com
+[student@workstation manage-reusing]$ ansible-navigator doc -l --eei ee-supported-rhel8:2.0 -m stdout | grep firewalld
+[student@workstation manage-reusing]$ ansible-navigator doc -l --eei ee-supported-rhel8:2.0 -m stdout
+[WARNING]: Collection splunk.es does not support Ansible version 2.11.6
+[WARNING]: Error parsing collection metadata requires_ansible value from collection ansible.network: Invalid specifier: '*'
+[WARNING]: Error parsing collection metadata requires_ansible value from collection ansible.security: Invalid specifier: '*'
+[WARNING]: Collection ibm.qradar does not support Ansible version 2.11.6
+[WARNING]: Collection frr.frr does not support Ansible version 2.11.6
+[DEPRECATION WARNING]: amazon.aws.aws_az_facts has been deprecated. aws_az_facts was renamed in Ansible 2.9 to aws_az_info. Please update your tasks. This feature will be 
+removed from amazon.aws in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: amazon.aws.aws_caller_facts has been deprecated. aws_caller_facts was renamed in Ansible 2.9 to aws_caller_info. Please update your tasks. This feature 
+will be removed from amazon.aws in a release after 2021-12-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: amazon.aws.cloudformation_facts has been deprecated. cloudformation_facts has been deprecated and will be removed. The cloudformation_info module 
+returns the same information, but not as ansible_facts.  See the module documentation for more information. This feature will be removed from amazon.aws in a release after 
+2021-12-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: amazon.aws.ec2_ami_facts has been deprecated. ec2_ami_facts was renamed in Ansible 2.9 to ec2_ami_info. Please update your tasks. This feature will be 
+removed from amazon.aws in a release after 2021-12-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: amazon.aws.ec2_eni_facts has been deprecated. ec2_eni_facts was renamed in Ansible 2.9 to ec2_eni_info. Please update your tasks. This feature will be 
+removed from amazon.aws in a release after 2021-12-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: amazon.aws.ec2_group_facts has been deprecated. ec2_group_facts was renamed in Ansible 2.9 to ec2_group_info. Please update your tasks. This feature 
+will be removed from amazon.aws in a release after 2021-12-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: amazon.aws.ec2_snapshot_facts has been deprecated. ec2_snapshot_facts was renamed in Ansible 2.9 to ec2_snapshot_info. Please update your tasks. This 
+feature will be removed from amazon.aws in a release after 2021-12-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: amazon.aws.ec2_vol_facts has been deprecated. ec2_vol_facts was renamed in Ansible 2.9 to ec2_vol_info. Please update your tasks. This feature will be 
+removed from amazon.aws in a release after 2021-12-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: amazon.aws.ec2_vpc_dhcp_option_facts has been deprecated. ec2_vpc_dhcp_option_facts was renamed in Ansible 2.9 to ec2_vpc_dhcp_option_info.  Please 
+update your tasks. This feature will be removed from amazon.aws in a release after 2021-12-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in 
+ansible.cfg.
+[DEPRECATION WARNING]: amazon.aws.ec2_vpc_net_facts has been deprecated. ec2_vpc_net_facts was renamed in Ansible 2.9 to ec2_vpc_net_info. Please update your tasks. This 
+feature will be removed from amazon.aws in a release after 2021-12-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: amazon.aws.ec2_vpc_subnet_facts has been deprecated. ec2_vpc_subnet_facts was renamed in Ansible 2.9 to ec2_vpc_subnet_info.  Please update your tasks. 
+This feature will be removed from amazon.aws in a release after 2021-12-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_banner has been deprecated. See the plugin documentation for more details. This feature will be removed from ansible.netcommon in 
+a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from ansible.netcommon 
+in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_l2_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+ansible.netcommon in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_l3_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+ansible.netcommon in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_linkagg has been deprecated. See the plugin documentation for more details. This feature will be removed from ansible.netcommon in
+ a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_lldp has been deprecated. See the plugin documentation for more details. This feature will be removed from ansible.netcommon in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_lldp_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+ansible.netcommon in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_logging has been deprecated. See the plugin documentation for more details. This feature will be removed from ansible.netcommon in
+ a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_static_route has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+ansible.netcommon in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_system has been deprecated. See the plugin documentation for more details. This feature will be removed from ansible.netcommon in 
+a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_user has been deprecated. See the plugin documentation for more details. This feature will be removed from ansible.netcommon in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_vlan has been deprecated. See the plugin documentation for more details. This feature will be removed from ansible.netcommon in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: ansible.netcommon.net_vrf has been deprecated. See the plugin documentation for more details. This feature will be removed from ansible.netcommon in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: arista.eos.eos_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from arista.eos in a release 
+after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: arista.eos.eos_l2_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from arista.eos in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: arista.eos.eos_l3_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from arista.eos in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: arista.eos.eos_linkagg has been deprecated. See the plugin documentation for more details. This feature will be removed from arista.eos in a release 
+after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: arista.eos.eos_static_route has been deprecated. See the plugin documentation for more details. This feature will be removed from arista.eos in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: arista.eos.eos_vlan has been deprecated. See the plugin documentation for more details. This feature will be removed from arista.eos in a release after 
+2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.asa.asa_acl has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.asa in a release after 
+2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.asa.asa_og has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.asa in a release after 
+2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.ios.ios_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.ios in a release 
+after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.ios.ios_l2_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.ios in a release 
+after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.ios.ios_l3_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.ios in a release 
+after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.ios.ios_static_route has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.ios in a release 
+after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.ios.ios_vlan has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.ios in a release after 
+2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.iosxr.iosxr_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.iosxr in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_acl has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a release after 
+2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_acl_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_bgp has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a release after 
+2023-01-27. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_bgp_af has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a release 
+after 2023-02-24. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_bgp_neighbor has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a 
+release after 2023-01-27. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_bgp_neighbor_af has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a 
+release after 2023-02-24. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a release 
+after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_interface_ospf has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a 
+release after 2022-10-26. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_l2_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_l3_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_linkagg has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a release 
+after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_lldp has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a release after
+ 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_ospf has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a release after
+ 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_ospf_vrf has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a release 
+after 2022-10-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_smu has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a release after 
+2022-10-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_static_route has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: cisco.nxos.nxos_vlan has been deprecated. See the plugin documentation for more details. This feature will be removed from cisco.nxos in a release after
+ 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: junipernetworks.junos.junos_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+junipernetworks.junos in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: junipernetworks.junos.junos_l2_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+junipernetworks.junos in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: junipernetworks.junos.junos_l3_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+junipernetworks.junos in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: junipernetworks.junos.junos_linkagg has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+junipernetworks.junos in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: junipernetworks.junos.junos_lldp has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+junipernetworks.junos in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: junipernetworks.junos.junos_lldp_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+junipernetworks.junos in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: junipernetworks.junos.junos_static_route has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+junipernetworks.junos in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: junipernetworks.junos.junos_vlan has been deprecated. See the plugin documentation for more details. This feature will be removed from 
+junipernetworks.junos in a release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: vyos.vyos.vyos_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from vyos.vyos in a release 
+after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: vyos.vyos.vyos_l3_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from vyos.vyos in a release
+ after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: vyos.vyos.vyos_linkagg has been deprecated. See the plugin documentation for more details. This feature will be removed from vyos.vyos in a release 
+after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: vyos.vyos.vyos_lldp has been deprecated. See the plugin documentation for more details. This feature will be removed from vyos.vyos in a release after 
+2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: vyos.vyos.vyos_lldp_interface has been deprecated. See the plugin documentation for more details. This feature will be removed from vyos.vyos in a 
+release after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: vyos.vyos.vyos_static_route has been deprecated. See the plugin documentation for more details. This feature will be removed from vyos.vyos in a release
+ after 2022-06-01. Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.
+add_host                                                       Add a host (and alternatively a group) to the ansible-playbook in-memory inventory                          
+amazon.aws.aws_az_facts                                        Gather information about availability zones in AWS                                                          
+amazon.aws.aws_az_info                                         Gather information about availability zones in AWS                                                          
+amazon.aws.aws_caller_facts                                    Get information about the user and account being used to make AWS calls                                     
+amazon.aws.aws_caller_info                                     Get information about the user and account being used to make AWS calls                                     
+amazon.aws.aws_s3                                              manage objects in S3                                                                                        
+amazon.aws.cloudformation                                      Create or delete an AWS CloudFormation stack                                                                
+amazon.aws.cloudformation_facts                                Obtain information about an AWS CloudFormation stack                                                        
+amazon.aws.cloudformation_info                                 Obtain information about an AWS CloudFormation stack                                                        
+amazon.aws.ec2                                                 create, terminate, start or stop an instance in ec2                                                         
+amazon.aws.ec2_ami                                             Create or destroy an image (AMI) in ec2                                                                     
+amazon.aws.ec2_ami_facts                                       Gather information about ec2 AMIs                                                                           
+amazon.aws.ec2_ami_info                                        Gather information about ec2 AMIs                                                                           
+amazon.aws.ec2_elb_lb                                          Creates, updates or destroys an Amazon ELB                                                                  
+amazon.aws.ec2_eni                                             Create and optionally attach an Elastic Network Interface (ENI) to an instance                              
+amazon.aws.ec2_eni_facts                                       Gather information about ec2 ENI interfaces in AWS                                                          
+amazon.aws.ec2_eni_info                                        Gather information about ec2 ENI interfaces in AWS                                                          
+amazon.aws.ec2_group                                           maintain an ec2 VPC security group                                                                          
+amazon.aws.ec2_group_facts                                     Gather information about ec2 security groups in AWS                                                         
+amazon.aws.ec2_group_info                                      Gather information about ec2 security groups in AWS                                                         
+amazon.aws.ec2_key                                             create or delete an ec2 key pair                                                                            
+amazon.aws.ec2_metadata_facts                                  gathers facts (instance metadata) about remote hosts within EC2                                             
+amazon.aws.ec2_snapshot                                        Creates a snapshot from an existing volume                                                                  
+amazon.aws.ec2_snapshot_facts                                  Gather information about ec2 volume snapshots in AWS                                                        
+amazon.aws.ec2_snapshot_info                                   Gather information about ec2 volume snapshots in AWS                                                        
+amazon.aws.ec2_tag                                             create and remove tags on ec2 resources                                                                     
+amazon.aws.ec2_tag_info                                        list tags on ec2 resources                                                                                  
+amazon.aws.ec2_vol                                             Create and attach a volume, return volume id and device map                                                 
+amazon.aws.ec2_vol_facts                                       Gather information about ec2 volumes in AWS                                                                 
+amazon.aws.ec2_vol_info                                        Gather information about ec2 volumes in AWS                                                                 
+amazon.aws.ec2_vpc_dhcp_option                                 Manages DHCP Options, and can ensure the DHCP options for the given VPC match what's requested              
+amazon.aws.ec2_vpc_dhcp_option_facts                           Gather information about dhcp options sets in AWS                                                           
+amazon.aws.ec2_vpc_dhcp_option_info                            Gather information about dhcp options sets in AWS                                                           
+amazon.aws.ec2_vpc_net                                         Configure AWS virtual private clouds                                                                        
+amazon.aws.ec2_vpc_net_facts                                   Gather information about ec2 VPCs in AWS                                                                    
+amazon.aws.ec2_vpc_net_info                                    Gather information about ec2 VPCs in AWS                                                                    
+amazon.aws.ec2_vpc_subnet                                      Manage subnets in AWS virtual private clouds                                                                
+amazon.aws.ec2_vpc_subnet_facts                                Gather information about ec2 VPC subnets in AWS                                                             
+amazon.aws.ec2_vpc_subnet_info                                 Gather information about ec2 VPC subnets in AWS                                                             
+amazon.aws.s3_bucket                                           Manage S3 buckets in AWS, DigitalOcean, Ceph, Walrus, FakeS3 and StorageGRID                                
+ansible.controller.ad_hoc_command                              create, update, or destroy Automation Platform Controller ad hoc commands                                   
+...skipping...
+ansible.posix.firewalld                                        Manage arbitrary ports/services with firewalld                                                              
+ansible.posix.mount                                            Control active and configured mount points                                                                  
+ansible.posix.patch                                            Apply patch files using the GNU patch tool                                                                  
+ansible.posix.seboolean                                        Toggles SELinux booleans                                                                                    
+ansible.posix.selinux                                          Change policy and state of SELinux                                                                          
+ansible.posix.synchronize                                      A wrapper around rsync to make common tasks in your playbooks quick and easy                                
+ansible.posix.sysctl                                           Manage entries in sysctl.conf                                                                               
+ansible.utils.cli_parse                                        Parse cli output or text using a variety of parsers                                                         
+ansible.utils.fact_diff                                        Find the difference between currently set facts                                                             
+ansible.utils.update_fact                                      Update currently set facts                                                                                  
+ansible.utils.validate                                         Validate data with provided criteria                                                                        
+ansible.windows.win_acl                                        Set file/directory/registry permissions for a system user or group                                          
+ansible.windows.win_acl_inheritance                            Change ACL inheritance                                                                                      
+ansible.windows.win_certificate_store                          Manages the certificate store                                                                               
+ansible.windows.win_command                                    Executes a command on a remote Windows node                                                                 
+ansible.windows.win_copy                                       Copies files to remote locations on windows hosts                                                           
+ansible.windows.win_dns_client                                 Configures DNS lookup on Windows hosts                                                                      
+ansible.windows.win_domain                                     Ensures the existence of a Windows domain                                                                   
+ansible.windows.win_domain_controller                          Manage domain controller/member server state for a Windows host                                             
+ansible.windows.win_domain_membership                          Manage domain/workgroup membership for a Windows host                                                       
+ansible.windows.win_dsc                                        Invokes a PowerShell DSC configuration                                                                      
+ansible.windows.win_environment                                Modify environment variables on windows hosts                                                               
+ansible.windows.win_feature                                    Installs and uninstalls Windows Features on Windows Server                                                  
+ansible.windows.win_file                                       Creates, touches or removes files or directories                                                            
+ansible.windows.win_find                                       Return a list of files based on specific criteria                                                           
+ansible.windows.win_get_url                                    Downloads file from HTTP, HTTPS, or FTP to node                                                             
+ansible.windows.win_group                                      Add and remove local groups                                                                                 
+ansible.windows.win_group_membership                           Manage Windows local group membership                                                                       
+ansible.windows.win_hostname                                   Manages local Windows computer name                                                                         
+ansible.windows.win_optional_feature                           Manage optional Windows features                                                                            
+ansible.windows.win_owner                                      Set owner                                                                                                   
+ansible.windows.win_package                                    Installs/uninstalls an installable package                                                                  
+ansible.windows.win_path                                       Manage Windows path environment variables                                                                   
+ansible.windows.win_ping                                       A windows version of the classic ping module                                                                
+ansible.windows.win_powershell                                 Run PowerShell scripts                                                                                      
+ansible.windows.win_reboot                                     Reboot a windows machine                                                                                    
+ansible.windows.win_reg_stat                                   Get information about Windows registry keys                                                                 
+ansible.windows.win_regedit                                    Add, change, or remove registry keys and values                                                             
+ansible.windows.win_service                                    Manage and query Windows services                                                                           
+ansible.windows.win_service_info                               Gather information about Windows services                                                                   
+ansible.windows.win_share                                      Manage Windows shares                                                                                       
+[student@workstation manage-reusing]$ cp basic-web.yml basic-web-fqcn.yml 
+[student@workstation manage-reusing]$ vim basic-web-fqcn.yml
+[student@workstation manage-reusing]$ cat basic-web-fqcn.yml
+---
+- name: Configure a basic web server
+  hosts: servere.lab.example.com
+  become: true
+  tasks:
+    - name: Install software
+      ansible.builtin.yum:
+        name:
+          - httpd
+          - firewalld
+        state: latest
+
+    - name: Start and enable services
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - httpd
+        - firewalld
+
+    - name: Open access to http
+      ansible.posix.firewalld:
+        service: http
+        immediate: true
+        permanent: true
+        state: enabled
+
+    - name: Configure simple index.html
+      ansible.builtin.copy:
+        content: "Hello world from {{ ansible_facts['fqdn'] }}.\n"
+        dest: /var/www/html/index.html
+
+[student@workstation manage-reusing]$ ansible-navigator run basic-web-fqcn.yml --eei ee-supported-rhel8:2.0 
+[student@workstation manage-reusing]$ curl servere.lab.example.com 
+Hello world from servere.lab.example.com.
+[student@workstation manage-reusing]$ cp basic-web.yml basic-web-keyword.yml
+[student@workstation manage-reusing]$ vim basic-web-keyword.yml
+[student@workstation manage-reusing]$ cat basic-web-keyword.yml
+---
+- name: Configure a basic web server
+  hosts: serverf.lab.example.com
+  become: true
+  collections:
+    - ansible.builtin
+    - ansible.posix
+  tasks:
+    - name: Install software
+      yum:
+        name:
+          - httpd
+          - firewalld
+        state: latest
+
+    - name: Start and enable services
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - httpd
+        - firewalld
+
+    - name: Open access to http
+      firewalld:
+        service: http
+        immediate: true
+        permanent: true
+        state: enabled
+
+    - name: Configure simple index.html
+      copy:
+        content: "Hello world from {{ ansible_facts['fqdn'] }}.\n"
+        dest: /var/www/html/index.html
+
+[student@workstation manage-reusing]$ ansible-navigator run basic-web-keyword.yml --eei ee-supported-rhel8:2.0 
+[student@workstation manage-reusing]$ curl serverf.lab.example.com
+Hello world from serverf.lab.example.com.
+[student@workstation manage-reusing]$ 
+[student@workstation manage-reusing]$ 
+[student@workstation manage-reusing]$ cd
+[student@workstation ~]$ lab finish manage-reusing 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

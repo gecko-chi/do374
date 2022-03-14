@@ -1,0 +1,192 @@
+[student@workstation ~]$ lab start manage-review
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-minimal-rhel8' container is available ............................................................................................................ SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Preparing servers ................................................................................................................................................. SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+Desktop            develop-practices  Downloads  lab_do374       manage-reusing  manage-selecting  Pictures  Templates
+develop-navigator  Documents          git-repos  manage-finding  manage-review   Music             Public    Videos
+[student@workstation ~]$ cd manage-re
+bash: cd: manage-re: No such file or directory
+[student@workstation ~]$ cd manage-review/
+[student@workstation manage-review]$ ls
+ansible.cfg  ansible-navigator.yml  cockpit.yml  create_samples_db.yml  inventory
+[student@workstation manage-review]$ cat cockpit.yml 
+---
+- name: Deploy cockpit
+  hosts: servera.lab.example.com
+  become: true
+
+  tasks:
+    - name: Ensure cockpit is installed
+      ansible.builtin.yum:
+        name: cockpit
+        state: present
+
+    - name: Ensure the cockpit service is started and enabled
+      ansible.builtin.systemd:
+        name: cockpit
+        state: started
+        enabled: true
+
+    - name: Ensure Cockpit network traffic is allowed
+      ansible.posix.firewalld:
+        service: cockpit
+        permanent: true
+        state: enabled
+        immediate: true
+[student@workstation manage-review]$ ansible-navigator images 
+[student@workstation manage-review]$ ansible-navigator images 
+[student@workstation manage-review]$ ansible-navigator run cockpit.yml --eei ee-supported-rhel8:2.0 
+[student@workstation manage-review]$ ls
+ansible.cfg  ansible-navigator.log  ansible-navigator.yml  cockpit-artifact-2022-03-14T10:29:17.587421+00:00.json  cockpit.yml  create_samples_db.yml  inventory
+[student@workstation manage-review]$ cat create_samples_db.yml 
+---
+- name: Create samples database
+  hosts: serverb.lab.example.com
+  become: true
+
+  tasks:
+    - name: Ensure MariaDB is installed
+      ansible.builtin.yum:
+        name:
+          - mariadb
+          - mariadb-server
+        state: present
+
+    - name: Ensure the mariadb service is started and enabled
+      ansible.builtin.systemd:
+        name: mariadb
+        state: started
+        enabled: true
+
+    - name: Ensure the samples database exists
+      community.mysql.mysql_db:
+        name: samples
+        state: present
+[student@workstation manage-review]$ ls
+ansible.cfg  ansible-navigator.log  ansible-navigator.yml  cockpit-artifact-2022-03-14T10:29:17.587421+00:00.json  cockpit.yml  create_samples_db.yml  inventory
+[student@workstation manage-review]$ cat ansible.cfg 
+[student@workstation manage-review]$ cat ansible.cfg 
+[defaults]
+inventory = ./inventory
+[student@workstation manage-review]$ 
+[student@workstation manage-review]$ vim ansible.cfg 
+[student@workstation manage-review]$ cat ansible.cfg
+[defaults]
+inventory = ./inventory
+
+
+[galaxy]
+server_list = community_repo
+
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=55d624f3359d860fb2482f8f5b05bebd10bec484
+[student@workstation manage-review]$ mkdir -p /home/student/manage-review/collections
+[student@workstation manage-review]$ ansible-galaxy collection list
+
+# /usr/share/ansible/collections/ansible_collections
+Collection               Version
+------------------------ -------
+redhat.rhel_system_roles 1.0.1  
+[student@workstation manage-review]$ ansible-galaxy collection install community.mysql -p collections/
+Starting galaxy collection install process
+[WARNING]: The specified collections path '/home/student/manage-review/collections' is not part of the configured Ansible collections paths
+'/home/student/.ansible/collections:/usr/share/ansible/collections'. The installed collection won't be picked up in an Ansible run.
+Process install dependency map
+Starting collection install process
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/community/community-mysql-3.0.0.tar.gz to /home/student/.ansible/tmp/ansible-local-98735w7b6_wme/tmpwnv767mf/community-mysql-3.0.0-ik1at_sc
+Installing 'community.mysql:3.0.0' to '/home/student/manage-review/collections/ansible_collections/community/mysql'
+community.mysql:3.0.0 was installed successfully
+[student@workstation manage-review]$ ansible-galaxy collection list
+
+# /usr/share/ansible/collections/ansible_collections
+Collection               Version
+------------------------ -------
+redhat.rhel_system_roles 1.0.1  
+[student@workstation manage-review]$ ansible-galaxy collection list
+
+# /usr/share/ansible/collections/ansible_collections
+Collection               Version
+------------------------ -------
+redhat.rhel_system_roles 1.0.1  
+[student@workstation manage-review]$ ls collections/
+ansible_collections
+[student@workstation manage-review]$ ls collections/ansible_collections/
+community
+[student@workstation manage-review]$ ls collections/ansible_collections/community/
+mysql
+[student@workstation manage-review]$ ls collections/ansible_collections/community/mysql/
+changelogs  codecov.yml  CONTRIBUTING.md  CONTRIBUTORS  COPYING  FILES.json  MAINTAINERS  MAINTAINING.md  MANIFEST.json  meta  plugins  README.md  REVIEW_CHECKLIST.md  tests
+[student@workstation manage-review]$ ansible-navigator run create_samples_db.yml 
+[student@workstation manage-review]$ ssh serverb -l student 
+Warning: Permanently added 'serverb' (ECDSA) to the list of known hosts.
+Activate the web console with: systemctl enable --now cockpit.socket
+
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+Last login: Mon Mar 14 06:38:31 2022 from 172.25.250.9
+[student@serverb ~]$ sudo -i 
+[root@serverb ~]# mysql -u root 
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 9
+Server version: 10.3.27-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| samples            |
++--------------------+
+4 rows in set (0.001 sec)
+
+MariaDB [(none)]> exit
+Bye
+[root@serverb ~]# exit
+logout
+[student@serverb ~]$ exit
+logout
+Connection to serverb closed.
+[student@workstation manage-review]$ cd
+[student@workstation ~]$ lab grade manage-review
+
+Grading lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Checking servera packages ......................................................................................................................................... PASS
+ · Checking servera listening ports .................................................................................................................................. PASS
+ · Checking servera firewall rules ................................................................................................................................... PASS
+ · Checking ansible.cfg for community ................................................................................................................................ PASS
+ · Checking for 'collections' directory on workstation ............................................................................................................... PASS
+ · Checking for collection installation on workstation ............................................................................................................... PASS
+ · Checking serverb packages ......................................................................................................................................... PASS
+ · Checking serverb services ......................................................................................................................................... PASS
+ · Checking serverb databases ........................................................................................................................................ PASS
+
+Overall lab grade: PASS
+
+[student@workstation ~]$ lab finish manage-review
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up exercise .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

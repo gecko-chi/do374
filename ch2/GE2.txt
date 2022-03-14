@@ -1,0 +1,178 @@
+[student@workstation ~]$ lab start manage-finding
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Adding exercise content ........................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ # access the https://hub.lab.example.com 
+[student@workstation ~]$ firefox https://hub.lab.example.com & 
+[1] 90819
+[student@workstation ~]$ ls
+Desktop  develop-navigator  develop-practices  Documents  Downloads  git-repos  lab_do374  manage-finding  manage-reusing  Music  Pictures  Public  Templates  Videos
+[student@workstation ~]$ cd manage-finding/
+[student@workstation manage-finding]$ ls
+ansible.cfg  inventory
+[student@workstation manage-finding]$ cat ansible.cfg 
+[defaults]
+inventory = ./inventory
+[student@workstation manage-finding]$ vim ansible.cfg
+[student@workstation manage-finding]$ vim ansible.cfg
+[student@workstation manage-finding]$ cat .
+cat: .: Is a directory
+[student@workstation manage-finding]$ cat ansible.cfg 
+[defaults]
+inventory = ./inventory
+
+
+[galaxy]
+server_list = rh-certified_repo, community_repo
+
+[galaxy_server.rh-certified_repo]
+url=https://hub.lab.example.com/api/galaxy/content/rh-certified/
+token=<put your token here>
+
+
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=<put your token here>
+[student@workstation manage-finding]$ vim ansible.cfg 
+[student@workstation manage-finding]$ cat ansible.cfg
+[defaults]
+inventory = ./inventory
+
+
+[galaxy]
+server_list = rh-certified_repo, community_repo
+
+[galaxy_server.rh-certified_repo]
+url=https://hub.lab.example.com/api/galaxy/content/rh-certified/
+token=4c8548bd63f7849f1f97e84b79a089747009b6ae
+
+
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=4c8548bd63f7849f1f97e84b79a089747009b6ae
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ ls
+ansible.cfg  inventory
+[student@workstation manage-finding]$ mkdir collections
+[student@workstation manage-finding]$ ansible-galaxy collection install ansible.netcommon -p collections/
+Starting galaxy collection install process
+[WARNING]: The specified collections path '/home/student/manage-finding/collections' is not part of the configured Ansible collections paths
+'/home/student/.ansible/collections:/usr/share/ansible/collections'. The installed collection won't be picked up in an Ansible run.
+Process install dependency map
+Starting collection install process
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/rh-certified/ansible-netcommon-2.5.0.tar.gz to /home/student/.ansible/tmp/ansible-local-91371plym2vwa/tmpi210ufpz/ansible-netcommon-2.5.0-ejikxxd7
+Installing 'ansible.netcommon:2.5.0' to '/home/student/manage-finding/collections/ansible_collections/ansible/netcommon'
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/rh-certified/ansible-utils-2.4.3.tar.gz to /home/student/.ansible/tmp/ansible-local-91371plym2vwa/tmpi210ufpz/ansible-utils-2.4.3-0e3cqbrv
+ansible.netcommon:2.5.0 was installed successfully
+Installing 'ansible.utils:2.4.3' to '/home/student/manage-finding/collections/ansible_collections/ansible/utils'
+ansible.utils:2.4.3 was installed successfully
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ vim ansible.cfg 
+[student@workstation manage-finding]$ cat ansible.cfg
+[defaults]
+inventory = ./inventory
+collections_paths = ./collections:/usr/share/ansible/collections
+
+[galaxy]
+server_list = rh-certified_repo, community_repo
+
+[galaxy_server.rh-certified_repo]
+url=https://hub.lab.example.com/api/galaxy/content/rh-certified/
+token=4c8548bd63f7849f1f97e84b79a089747009b6ae
+
+
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=4c8548bd63f7849f1f97e84b79a089747009b6ae
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ ansible-galaxy collection list 
+
+# /home/student/manage-finding/collections/ansible_collections
+Collection        Version
+----------------- -------
+ansible.netcommon 2.5.0  
+ansible.utils     2.4.3  
+
+# /usr/share/ansible/collections/ansible_collections
+Collection               Version
+------------------------ -------
+redhat.rhel_system_roles 1.0.1  
+[student@workstation manage-finding]$ ansible-galaxy collection install redhat.rhv:1.4.1
+Starting galaxy collection install process
+Process install dependency map
+Starting collection install process
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/rh-certified/redhat-rhv-1.4.1.tar.gz to /home/student/.ansible/tmp/ansible-local-91474mnfhjeme/tmpw9g35u4d/redhat-rhv-1.4.1-v2sag_xq
+Installing 'redhat.rhv:1.4.1' to '/home/student/manage-finding/collections/ansible_collections/redhat/rhv'
+redhat.rhv:1.4.1 was installed successfully
+[student@workstation manage-finding]$ ansible-galaxy collection list 
+
+# /home/student/manage-finding/collections/ansible_collections
+Collection        Version
+----------------- -------
+ansible.netcommon 2.5.0  
+ansible.utils     2.4.3  
+redhat.rhv        1.4.1  
+
+# /usr/share/ansible/collections/ansible_collections
+Collection               Version
+------------------------ -------
+redhat.rhel_system_roles 1.0.1  
+[student@workstation manage-finding]$ vim collections/requirements.yml
+[student@workstation manage-finding]$ cat collections/requirements.yml
+---
+collections:
+  - name: ansible.netcommon
+  - name: redhat.rhv
+    version: 1.4.1
+  - name: community.crypto
+    version: 1.9.3
+  - name: ansible.controller
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ ansible-galaxy collection install -r collections/requirements.yml 
+Starting galaxy collection install process
+Process install dependency map
+Starting collection install process
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/community/community-crypto-1.9.3.tar.gz to /home/student/.ansible/tmp/ansible-local-91548pyu8pr_e/tmpfrksydbt/community-crypto-1.9.3-xti2lhru
+Skipping 'ansible.netcommon:2.5.0' as it is already installed
+Skipping 'redhat.rhv:1.4.1' as it is already installed
+Skipping 'ansible.utils:2.4.3' as it is already installed
+Installing 'community.crypto:1.9.3' to '/home/student/manage-finding/collections/ansible_collections/community/crypto'
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/rh-certified/ansible-controller-4.1.0.tar.gz to /home/student/.ansible/tmp/ansible-local-91548pyu8pr_e/tmpfrksydbt/ansible-controller-4.1.0-1e4v88jm
+community.crypto:1.9.3 was installed successfully
+Installing 'ansible.controller:4.1.0' to '/home/student/manage-finding/collections/ansible_collections/ansible/controller'
+ansible.controller:4.1.0 was installed successfully
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ 
+[student@workstation manage-finding]$ ansible-galaxy collection list 
+
+# /usr/share/ansible/collections/ansible_collections
+Collection               Version
+------------------------ -------
+redhat.rhel_system_roles 1.0.1  
+
+# /home/student/manage-finding/collections/ansible_collections
+Collection         Version
+------------------ -------
+ansible.controller 4.1.0  
+ansible.netcommon  2.5.0  
+ansible.utils      2.4.3  
+community.crypto   1.9.3  
+redhat.rhv         1.4.1  
+[student@workstation manage-finding]$ cd
+[student@workstation ~]$ lab finish  manage-finding 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

@@ -1,0 +1,143 @@
+[student@workstation ~]$ lab start manage-selecting 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-minimal-rhel8' container is absent ............................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is absent ............................................................................................................. SUCCESS
+ · Ensuring required packages are available .......................................................................................................................... SUCCESS
+ · Ensuring the '/webserver_data' directory exists on webservers ..................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+Desktop            develop-practices  Downloads  lab_do374       manage-reusing    Music     Public     Videos
+develop-navigator  Documents          git-repos  manage-finding  manage-selecting  Pictures  Templates
+[student@workstation ~]$ cd manage-selecting/
+[student@workstation manage-selecting]$ ls
+acl_info.yml  ansible.cfg  inventory
+[student@workstation manage-selecting]$ cat acl_info.yml 
+---
+- name: Retrieving ACLs using the ansible.posix collection
+  hosts: web_servers
+  gather_facts: false
+
+  tasks:
+    - name: Obtain the ACLs for /webserver_data directory
+      ansible.posix.acl:
+        path: /webserver_data/
+      register: acl_info
+
+    - name: Print the ACLs obtained for /webserver_data directory
+      ansible.builtin.debug:
+        var: acl_info.acl
+[student@workstation manage-selecting]$ cat /run/user/1000/containers/auth.json 
+{
+	"auths": {
+		"hub.lab.example.com": {
+			"auth": "YWRtaW46cmVkaGF0"
+		}
+	}
+}[student@workstation manage-selecting]$ podman login -u admin -p redhat hub.lab.example.com
+Login Succeeded!
+[student@workstation manage-selecting]$ ansible-navigator images --eei hub.lab.example.com/ee-minimal-rhel8:2.0 
+---------------------------------------------------------------------------
+Execution environment image and pull policy overview
+---------------------------------------------------------------------------
+Execution environment image name:  hub.lab.example.com/ee-minimal-rhel8:2.0
+Execution environment image tag:   2.0
+Execution environment pull policy: tag
+Execution environment pull needed: True
+---------------------------------------------------------------------------
+Updating the execution environment
+---------------------------------------------------------------------------
+Trying to pull hub.lab.example.com/ee-minimal-rhel8:2.0...
+Getting image source signatures
+Copying blob 00fe5380b165 done  
+Copying blob 80be453030cf done  
+Copying blob 5c4402ce71c4 done  
+Copying blob 69ebc448681d done  
+Copying config 9fd78d66bb done  
+Writing manifest to image destination
+Storing signatures
+9fd78d66bbe3381008266ed1e39a35459db6800672b8426e08618f4480371beb
+[student@workstation manage-selecting]$ ansible-navigator images --eei hub.lab.example.com/ee-supported-rhel8:2.0 
+-----------------------------------------------------------------------------
+Execution environment image and pull policy overview
+-----------------------------------------------------------------------------
+Execution environment image name:  hub.lab.example.com/ee-supported-rhel8:2.0
+Execution environment image tag:   2.0
+Execution environment pull policy: tag
+Execution environment pull needed: True
+-----------------------------------------------------------------------------
+Updating the execution environment
+-----------------------------------------------------------------------------
+Trying to pull hub.lab.example.com/ee-supported-rhel8:2.0...
+Getting image source signatures
+Copying blob 80be453030cf skipped: already exists  
+Copying blob 69ebc448681d skipped: already exists  
+Copying blob 5c4402ce71c4 skipped: already exists  
+Copying blob 00fe5380b165 skipped: already exists  
+Copying blob d322672cc56a done  
+Copying config 00aa4b51e9 done  
+Writing manifest to image destination
+Storing signatures
+00aa4b51e90f57d6fe20d7b1a6d36b9122b3dce0b6124aea58b931fda4fdab23
+[student@workstation manage-selecting]$ ansible-navigator run acl_info.yml -m stdout --eei ee-minimal-rhel8:2.0 
+ERROR! couldn't resolve module/action 'ansible.posix.acl'. This often indicates a misspelling, missing collection, or incorrect module path.
+
+The error appears to be in '/home/student/manage-selecting/acl_info.yml': line 7, column 7, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+  tasks:
+    - name: Obtain the ACLs for /webserver_data directory
+      ^ here
+[student@workstation manage-selecting]$ ansible-navigator run acl_info.yml -m stdout --eei ee-supported-rhel8:2.0 
+
+PLAY [Retrieving ACLs using the ansible.posix collection] **********************
+
+TASK [Obtain the ACLs for /webserver_data directory] ***************************
+ok: [serverb.lab.example.com]
+ok: [serverc.lab.example.com]
+
+TASK [Print the ACLs obtained for /webserver_data directory] *******************
+ok: [serverb.lab.example.com] => {
+    "acl_info.acl": [
+        "user::rwx",
+        "group::r-x",
+        "other::r-x",
+        "default:user::rwx",
+        "default:group::r-x",
+        "default:mask::rwx",
+        "default:other::r-x"
+    ]
+}
+ok: [serverc.lab.example.com] => {
+    "acl_info.acl": [
+        "user::rwx",
+        "group::r-x",
+        "other::r-x",
+        "default:user::rwx",
+        "default:group::r-x",
+        "default:mask::rwx",
+        "default:other::r-x"
+    ]
+}
+
+PLAY RECAP *********************************************************************
+serverb.lab.example.com    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation manage-selecting]$ cd
+[student@workstation ~]$ lab finish manage-selecting
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Removing the '/webserver_data' directory from webservers .......................................................................................................... SUCCESS
+ · Cleaning up exercise .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+
