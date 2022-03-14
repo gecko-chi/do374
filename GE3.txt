@@ -1,0 +1,92 @@
+[student@workstation ~]$ lab start  develop-practices 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Adding exercise content ........................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+Desktop  develop-navigator  develop-practices  Documents  Downloads  git-repos  Music  Pictures  Public  Templates  Videos
+[student@workstation ~]$ cd develop-practices/
+[student@workstation develop-practices]$ ls
+ansible.cfg  appservers.yml  clean.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  inventory  roles  site.yml
+[student@workstation develop-practices]$ vim roles/haproxy/defaults/main.yml 
+[student@workstation develop-practices]$ cat roles/haproxy/defaults/main.yml
+# Log-level for HAProxy logs
+haproxy_log_level: info
+
+# Port exposed to clients
+haproxy_port: 80
+
+# Name for the default backend
+haproxy_backend_name: app
+
+# Port backend is exposed to
+haproxy_backend_port: 80
+
+# A list of back-end web servers
+haproxy_appservers: []
+[student@workstation develop-practices]$ grep -E 'log_level|port|backend_name|backend_port|appservers' roles/haproxy/templates/haproxy.cfg.j2
+    log         127.0.0.1:514 local0 {{ log_level }}
+    bind *:{{ port }}
+    default_backend {{ backend_name }}
+backend {{ backend_name }}
+{% for server in appservers %}
+    server {{ server['name'] }} {{ server['ip'] }}:{{ backend_port }}
+[student@workstation develop-practices]$ vim roles/haproxy/templates/haproxy.cfg.j2
+[student@workstation develop-practices]$ grep -E 'log_level|port|backend_name|backend_port|appservers' roles/haproxy/templates/haproxy.cfg.j2
+    log         127.0.0.1:514 local0 {{ haproxy_log_level }}
+    bind *:{{ haproxy_port }}
+    default_backend {{ haproxy_backend_name }}
+backend {{ haproxy_backend_name }}
+{% for server in haproxy_appservers %}
+    server {{ server['name'] }} {{ server['ip'] }}:{{ haproxy_backend_port }}
+[student@workstation develop-practices]$ mkdir group_vars
+[student@workstation develop-practices]$ 
+[student@workstation develop-practices]$ mv -v appservers.yml group_vars/lb_servers.yml
+renamed 'appservers.yml' -> 'group_vars/lb_servers.yml'
+[student@workstation develop-practices]$ vim group_vars/lb_servers.yml
+[student@workstation develop-practices]$ cat group_vars/lb_servers.yml
+haproxy_appservers:
+  - name: serverb.lab.example.com
+    ip: "172.25.250.11"
+  - name: serverc.lab.example.com
+    ip: "172.25.250.12"
+
+[student@workstation develop-practices]$ vim inventory 
+[student@workstation develop-practices]$ cat inventory
+[lb_servers]
+servera.lab.example.com
+
+[web_servers]
+server[b:c].lab.example.com
+
+[region_eu]
+serverc.lab.example.com
+[student@workstation develop-practices]$ vim group_vars/region_eu.yml
+[student@workstation develop-practices]$ cat group_vars/region_eu.yml
+webapp_message: "Hello from Europe. This is"
+[student@workstation develop-practices]$ 
+[student@workstation develop-practices]$ cat roles/webapp/defaults/main.yml 
+webapp_message: "This is"
+[student@workstation develop-practices]$ podman login -u admin -p redhat hub.lab.example.com
+Login Succeeded!
+[student@workstation develop-practices]$ ansible-navigator run site.yml --eei ee-supported-rhel8:2.0 
+[student@workstation develop-practices]$ curl servera
+This is serverb.lab.example.com. (version v1.0)
+[student@workstation develop-practices]$ curl servera
+Hello from Europe. This is serverc.lab.example.com. (version v1.0)
+[student@workstation develop-practices]$ cd
+[student@workstation ~]$ lab finish  develop-practices
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

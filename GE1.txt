@@ -1,0 +1,262 @@
+[student@workstation ~]$ sudo su - 
+[sudo] password for student: 
+[root@workstation ~]# yum install gnome-tweaks
+Last metadata expiration check: 1:04:27 ago on Sun 13 Mar 2022 11:23:47 PM EDT.
+Dependencies resolved.
+================================================================================
+ Package            Arch   Version       Repository                        Size
+================================================================================
+Installing:
+ gnome-tweaks       noarch 3.28.1-7.el8  rhel-8-for-x86_64-appstream-rpms 331 k
+Installing dependencies:
+ gnome-shell-extension-user-theme
+                    noarch 3.32.1-14.el8 rhel-8-for-x86_64-appstream-rpms  26 k
+
+Transaction Summary
+================================================================================
+Install  2 Packages
+
+Total download size: 358 k
+Installed size: 1.4 M
+Is this ok [y/N]: y
+Downloading Packages:
+(1/2): gnome-shell-extension-user-theme-3.32.1- 1.6 MB/s |  26 kB     00:00    
+(2/2): gnome-tweaks-3.28.1-7.el8.noarch.rpm      15 MB/s | 331 kB     00:00    
+--------------------------------------------------------------------------------
+Total                                            15 MB/s | 358 kB     00:00     
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                        1/1 
+  Installing       : gnome-shell-extension-user-theme-3.32.1-14.el8.noarc   1/2 
+  Installing       : gnome-tweaks-3.28.1-7.el8.noarch                       2/2 
+  Running scriptlet: gnome-tweaks-3.28.1-7.el8.noarch                       2/2 
+  Verifying        : gnome-shell-extension-user-theme-3.32.1-14.el8.noarc   1/2 
+  Verifying        : gnome-tweaks-3.28.1-7.el8.noarch                       2/2 
+
+Installed:
+  gnome-shell-extension-user-theme-3.32.1-14.el8.noarch                         
+  gnome-tweaks-3.28.1-7.el8.noarch                                              
+
+Complete!
+[root@workstation ~]# exit
+logout
+[student@workstation ~]$ gnome-tweaks 
+[student@workstation ~]$ lab start  develop-navigator 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................... SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................... SUCCESS
+ · Configuring exercise .............................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+[student@workstation ~]$ sudo yum install ansible-navigator
+Last metadata expiration check: 1:06:55 ago on Sun 13 Mar 2022 11:23:47 PM EDT.
+Dependencies resolved.
+================================================================================================================================================
+ Package                  Architecture  Version                Repository                                                                  Size
+================================================================================================================================================
+Installing:
+ ansible-navigator        noarch        1.0.0-2.el8ap          ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms        260 k
+
+Transaction Summary
+================================================================================================================================================
+Install  1 Package
+
+Total size: 260 k
+Installed size: 1.1 M
+Is this ok [y/N]: y
+Downloading Packages:
+[SKIPPED] ansible-navigator-1.0.0-2.el8ap.noarch.rpm: Already downloaded                                                                       
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                                                                                        1/1 
+  Installing       : ansible-navigator-1.0.0-2.el8ap.noarch                                                                                 1/1 
+  Running scriptlet: ansible-navigator-1.0.0-2.el8ap.noarch                                                                                 1/1 
+  Verifying        : ansible-navigator-1.0.0-2.el8ap.noarch                                                                                 1/1 
+
+Installed:
+  ansible-navigator-1.0.0-2.el8ap.noarch                                                                                                        
+
+Complete!
+[student@workstation ~]$ ls
+Desktop  develop-navigator  Documents  Downloads  Music  Pictures  Public  Templates  Videos
+[student@workstation ~]$ cd develop-navigator/
+[student@workstation develop-navigator]$ ls
+ansible.cfg  intranet.yml  inventory
+[student@workstation develop-navigator]$ tree 
+.
+├── ansible.cfg
+├── intranet.yml
+└── inventory
+
+0 directories, 3 files
+[student@workstation develop-navigator]$ cat intranet.yml 
+---
+- name: Enable intranet services
+  hosts: servera.lab.example.com
+  become: yes
+  tasks:
+    - name: latest version of httpd and firewalld installed
+      yum:
+        name:
+          - httpd
+          - firewalld
+        state: latest
+
+    - name: test html page is installed
+      copy:
+        content: "Welcome to the example.com intranet!\n"
+        dest: /var/www/html/index.html
+
+    - name: firewalld enabled and running
+      service:
+        name: firewalld
+        enabled: true
+        state: started
+
+    - name: firewalld permits http service
+      ansible.posix.firewalld:
+        service: http
+        permanent: true
+        state: enabled
+        immediate: yes
+
+    - name: httpd enabled and running
+      service:
+        name: httpd
+        enabled: true
+        state: started
+
+- name: Test intranet web server
+  hosts: localhost
+  become: no
+  tasks:
+    - name: connect to intranet web server
+      uri:
+        url: http://servera.lab.example.com
+        return_content: yes
+        status_code: 200
+
+[student@workstation develop-navigator]$ podman login -u admin -p redhat hub.lab.examplecom
+Error: error authenticating creds for "hub.lab.examplecom": error pinging docker registry hub.lab.examplecom: Get "https://hub.lab.examplecom/v2/": dial tcp: lookup hub.lab.examplecom on 172.25.250.254:53: no such host
+[student@workstation develop-navigator]$ 
+[student@workstation develop-navigator]$ 
+[student@workstation develop-navigator]$ dig hub.lab.example.com
+
+; <<>> DiG 9.11.26-RedHat-9.11.26-4.el8_4 <<>> hub.lab.example.com
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 61468
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;hub.lab.example.com.		IN	A
+
+;; ANSWER SECTION:
+hub.lab.example.com.	3600	IN	A	172.25.250.6
+
+;; Query time: 1 msec
+;; SERVER: 172.25.250.254#53(172.25.250.254)
+;; WHEN: Mon Mar 14 00:31:44 EDT 2022
+;; MSG SIZE  rcvd: 64
+
+[student@workstation develop-navigator]$ cat /etc/hosts 
+127.0.0.1 localhost.localdomain localhost
+172.25.254.254 classroom.example.com classroom
+172.25.254.254 content.example.com content
+172.25.254.254 materials.example.com materials
+### rht-vm-hosts file listing the entries to be appended to /etc/hosts
+
+172.25.250.254 bastion.lab.example.com bastion
+172.25.250.9   workstation.lab.example.com workstation
+172.25.250.6   hub.lab.example.com hub
+172.25.250.7   controller.lab.example.com controller
+172.25.250.8   utility.lab.example.com utility
+172.25.250.5   git.lab.example.com git
+172.25.250.10  servera.lab.example.com servera
+172.25.250.11  serverb.lab.example.com serverb
+172.25.250.12  serverc.lab.example.com serverc
+172.25.250.13  serverd.lab.example.com serverd
+172.25.250.14  servere.lab.example.com servere
+172.25.250.15  serverf.lab.example.com serverf
+
+[student@workstation develop-navigator]$ podman login -u admin -p redhat hub.lab.example.com
+Login Succeeded!
+[student@workstation develop-navigator]$ ansible-navigator run intranet.yml -m stdout --eei ee-support-rhel8:2.0 
+-------------------------------------------------------
+Execution environment image and pull policy overview
+-------------------------------------------------------
+Execution environment image name:  ee-support-rhel8:2.0
+Execution environment image tag:   2.0
+Execution environment pull policy: tag
+Execution environment pull needed: True
+-------------------------------------------------------
+Updating the execution environment
+-------------------------------------------------------
+Resolving "ee-support-rhel8" using unqualified-search registries (/etc/containers/registries.conf)
+Trying to pull hub.lab.example.com/ee-support-rhel8:2.0...
+  name unknown: Repository not found.
+Error: Error initializing source docker://hub.lab.example.com/ee-support-rhel8:2.0: Error reading manifest 2.0 in hub.lab.example.com/ee-support-rhel8: name unknown: Repository not found.
+[ERROR]: Execution environment pull failed
+ [HINT]: Check the execution environment image name, connectivity to and permissions for the registry, and try again
+[student@workstation develop-navigator]$ ansible-navigator run intranet.yml -m stdout --eei ee-supported-rhel8:2.0 
+
+PLAY [Enable intranet services] ************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [servera.lab.example.com]
+
+TASK [latest version of httpd and firewalld installed] *************************
+changed: [servera.lab.example.com]
+
+TASK [test html page is installed] *********************************************
+changed: [servera.lab.example.com]
+
+TASK [firewalld enabled and running] *******************************************
+ok: [servera.lab.example.com]
+
+TASK [firewalld permits http service] ******************************************
+changed: [servera.lab.example.com]
+
+TASK [httpd enabled and running] ***********************************************
+changed: [servera.lab.example.com]
+
+PLAY [Test intranet web server] ************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [localhost]
+
+TASK [connect to intranet web server] ******************************************
+ok: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+servera.lab.example.com    : ok=6    changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation develop-navigator]$ ansible-navigator --eei ee-supported-rhel8:2.0 
+[student@workstation develop-navigator]$ cd
+[student@workstation ~]$ lab finish develop-navigator 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................. SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+

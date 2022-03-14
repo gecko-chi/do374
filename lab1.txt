@@ -1,0 +1,312 @@
+[student@workstation ~]$ lab start develop-review
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ git clone https://git.lab.example.com/git/develop-review.git 
+Cloning into 'develop-review'...
+remote: Enumerating objects: 53, done.
+remote: Counting objects: 100% (53/53), done.
+remote: Compressing objects: 100% (35/35), done.
+remote: Total 53 (delta 4), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (53/53), 7.04 KiB | 901.00 KiB/s, done.
+[student@workstation ~]$ rm -rf develop-review/
+[student@workstation ~]$ ls
+Desktop  develop-navigator  develop-practices  Documents  Downloads  git-repos  Music  Pictures  Public  Templates  Videos
+[student@workstation ~]$ cd git-repos/
+[student@workstation git-repos]$ ls
+develop-git
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/develop-review.git 
+Cloning into 'develop-review'...
+remote: Enumerating objects: 53, done.
+remote: Counting objects: 100% (53/53), done.
+remote: Compressing objects: 100% (35/35), done.
+remote: Total 53 (delta 4), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (53/53), 7.04 KiB | 480.00 KiB/s, done.
+[student@workstation git-repos]$ ls
+develop-git  develop-review
+[student@workstation git-repos]$ cd develop-review/
+[student@workstation develop-review]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation develop-review]$ podman login -u admin -p redhat hub.lab.example.com
+Login Succeeded!
+[student@workstation develop-review]$ less site.yml 
+[student@workstation develop-review]$ cat site.yml
+
+- name: Deploy HAProxy
+  import_playbook: deploy_haproxy.yml
+
+- name: Deploy Web Server
+  import_playbook: deploy_apache.yml
+
+- name: Deploy Web App
+  import_playbook: deploy_webapp.yml
+
+[student@workstation develop-review]$ lls
+bash: lls: command not found...
+Similar command is: 'ls'
+[student@workstation develop-review]$ ls
+ansible.cfg  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  group_vars  inventory  roles  site.yml
+[student@workstation develop-review]$ less deploy_apache.yml 
+[student@workstation develop-review]$ less deploy_haproxy.yml 
+[student@workstation develop-review]$ less deploy_webapp.yml 
+[student@workstation develop-review]$ ansible-navigator run site.yml --eei ee-supported-rhel8:2.0 
+[student@workstation develop-review]$ ls roles/
+firewall  haproxy  my_role  webapp
+[student@workstation develop-review]$ mv roles/my_role roles/apache
+[student@workstation develop-review]$ vim deploy_apache.yml 
+[student@workstation develop-review]$ ansible-navigator run deploy_apache.yml --eei ee-supported-rhel8:2.0 
+[student@workstation develop-review]$ git status 
+On branch exercise
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   deploy_apache.yml
+	deleted:    roles/my_role/meta/main.yml
+	deleted:    roles/my_role/tasks/main.yml
+	deleted:    roles/my_role/vars/main.yml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.ssh/
+	ansible-navigator.log
+	deploy_apache-artifact-2022-03-14T07:03:32.970136+00:00.json
+	roles/apache/
+	site-artifact-2022-03-14T07:01:18.562949+00:00.json
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[student@workstation develop-review]$ git rm -r roles/my_role/
+rm 'roles/my_role/meta/main.yml'
+rm 'roles/my_role/tasks/main.yml'
+rm 'roles/my_role/vars/main.yml'
+[student@workstation develop-review]$ git add roles/apache/ deploy_apache.yml 
+[student@workstation develop-review]$ git status
+On branch exercise
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   deploy_apache.yml
+	renamed:    roles/my_role/meta/main.yml -> roles/apache/meta/main.yml
+	renamed:    roles/my_role/tasks/main.yml -> roles/apache/tasks/main.yml
+	renamed:    roles/my_role/vars/main.yml -> roles/apache/vars/main.yml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.ssh/
+	ansible-navigator.log
+	deploy_apache-artifact-2022-03-14T07:03:32.970136+00:00.json
+	site-artifact-2022-03-14T07:01:18.562949+00:00.json
+
+[student@workstation develop-review]$ vim .gitignore
+[student@workstation develop-review]$ cat .gitignore
+.ssh
+ansible_navigator.log
+*-artifact-*
+[student@workstation develop-review]$ git status 
+On branch exercise
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   deploy_apache.yml
+	renamed:    roles/my_role/meta/main.yml -> roles/apache/meta/main.yml
+	renamed:    roles/my_role/tasks/main.yml -> roles/apache/tasks/main.yml
+	renamed:    roles/my_role/vars/main.yml -> roles/apache/vars/main.yml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.gitignore
+	ansible-navigator.log
+
+[student@workstation develop-review]$ vim .gitignore 
+[student@workstation develop-review]$ git status 
+On branch exercise
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   deploy_apache.yml
+	renamed:    roles/my_role/meta/main.yml -> roles/apache/meta/main.yml
+	renamed:    roles/my_role/tasks/main.yml -> roles/apache/tasks/main.yml
+	renamed:    roles/my_role/vars/main.yml -> roles/apache/vars/main.yml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.gitignore
+
+[student@workstation develop-review]$ git commit -m "Renamd my_role to apache"
+[exercise b187a76] Renamd my_role to apache
+ 4 files changed, 2 insertions(+), 2 deletions(-)
+ rename roles/{my_role => apache}/meta/main.yml (100%)
+ rename roles/{my_role => apache}/tasks/main.yml (100%)
+ rename roles/{my_role => apache}/vars/main.yml (100%)
+[student@workstation develop-review]$ git push -u origin exercise
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 387 bytes | 387.00 KiB/s, done.
+Total 4 (delta 3), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: To create a merge request for exercise, visit:
+remote:   https://git.lab.example.com/git/develop-review/-/merge_requests/new?merge_request%5Bsource_branch%5D=exercise
+remote: 
+To https://git.lab.example.com/git/develop-review.git
+ * [new branch]      exercise -> exercise
+Branch 'exercise' set up to track remote branch 'exercise' from 'origin'.
+[student@workstation develop-review]$ vim deploy_webapp.yml 
+[student@workstation develop-review]$ cat deploy_webapp.yml
+- name: Ensure the web application is deployed
+  hosts: web_servers
+  gather_facts: no
+  vars:
+    version: v1.0
+    message: "This is {{ inventory_hostname }}."
+
+  roles:
+    - role: webapp
+
+[student@workstation develop-review]$ vim roles/webapp/
+defaults/ meta/     tasks/    tests/    
+[student@workstation develop-review]$ vim roles/webapp/
+defaults/ meta/     tasks/    tests/    
+[student@workstation develop-review]$ vim roles/webapp/tasks/main.yml 
+[student@workstation develop-review]$ cat roles/webapp/tasks/main.yml
+---
+# tasks file for webapp
+
+- name: Ensure placeholder content is displayed
+  copy:
+    content: "{{ message }} (version {{ version }})\n"
+    dest: /var/www/html/index.html
+
+[student@workstation develop-review]$ ansible-navigator run deploy_webapp.yml --eei ee-supported-rhel8:2.0 
+[student@workstation develop-review]$ git status
+On branch exercise
+Your branch is up to date with 'origin/exercise'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   deploy_webapp.yml
+	modified:   roles/webapp/tasks/main.yml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.gitignore
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[student@workstation develop-review]$ git add deploy_webapp.yml  roles/webapp/
+[student@workstation develop-review]$ git commit -m "Added names to webapp playbook and role."
+[exercise 9b091ad] Added names to webapp playbook and role.
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+[student@workstation develop-review]$ git push -u origin exercise
+Enumerating objects: 13, done.
+Counting objects: 100% (13/13), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (6/6), done.
+Writing objects: 100% (7/7), 756 bytes | 756.00 KiB/s, done.
+Total 7 (delta 3), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: To create a merge request for exercise, visit:
+remote:   https://git.lab.example.com/git/develop-review/-/merge_requests/new?merge_request%5Bsource_branch%5D=exercise
+remote: 
+To https://git.lab.example.com/git/develop-review.git
+   b187a76..9b091ad  exercise -> exercise
+Branch 'exercise' set up to track remote branch 'exercise' from 'origin'.
+[student@workstation develop-review]$ vim roles/webapp/defaults/main.yml 
+[student@workstation develop-review]$ cat roles/webapp/defaults/main.yml
+
+webapp_version: v1.0
+webapp_message: "This is {{ inventory_hostname }}."
+
+[student@workstation develop-review]$ vim roles/webapp/tasks/main.yml 
+[student@workstation develop-review]$ cat roles/webapp/tasks/main.yml
+---
+# tasks file for webapp
+
+- name: Ensure placeholder content is displayed
+  copy:
+    content: "{{ webapp_message }} (version {{ webapp_version }})\n"
+    dest: /var/www/html/index.html
+
+[student@workstation develop-review]$ 
+[student@workstation develop-review]$ 
+[student@workstation develop-review]$ vim deploy_webapp.yml 
+[student@workstation develop-review]$ cat deploy_webapp.yml
+- name: Ensure the web application is deployed
+  hosts: web_servers
+  gather_facts: no
+  vars:
+    webapp_version: v1.0
+    webapp_message: "This is {{ inventory_hostname }}."
+
+  roles:
+    - role: webapp
+
+[student@workstation develop-review]$ ansible-navigator run deploy_webapp.yml --eei ee-supported-rhel8:2.0 
+[student@workstation develop-review]$ git status
+On branch exercise
+Your branch is up to date with 'origin/exercise'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   deploy_webapp.yml
+	modified:   roles/webapp/defaults/main.yml
+	modified:   roles/webapp/tasks/main.yml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.gitignore
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[student@workstation develop-review]$ git add deploy_webapp.yml roles/webapp/
+[student@workstation develop-review]$ git commit -m "Updated webapp role variable names."
+[exercise 865cd1a] Updated webapp role variable names.
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+[student@workstation develop-review]$ git push -u origin exercise
+Enumerating objects: 17, done.
+Counting objects: 100% (17/17), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (7/7), done.
+Writing objects: 100% (9/9), 792 bytes | 792.00 KiB/s, done.
+Total 9 (delta 4), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: To create a merge request for exercise, visit:
+remote:   https://git.lab.example.com/git/develop-review/-/merge_requests/new?merge_request%5Bsource_branch%5D=exercise
+remote: 
+To https://git.lab.example.com/git/develop-review.git
+   9b091ad..865cd1a  exercise -> exercise
+Branch 'exercise' set up to track remote branch 'exercise' from 'origin'.
+[student@workstation develop-review]$ ansible-navigator run site.yml --eei ee-supported-rhel8:2.0 
+[student@workstation develop-review]$ cd
+[student@workstation ~]$ lab grade develop-review 
+
+Grading lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Ensuring exercise hosts are cleaned before grading ................................................................................................................ SUCCESS
+ · Role 'apache' defined in the 'deploy_apache.yml' playbook ......................................................................................................... PASS
+ · Play name defined in the 'deploy_webapp.yml' playbook ............................................................................................................. PASS
+ · All tasks have names in the 'roles/webapp/tasks/main.yml' file .................................................................................................... PASS
+ · Default variables prefixed with 'webapp_' in the 'roles/webapp/defaults/main.yml' file ............................................................................ PASS
+ · Initial variables not found in the 'roles/webapp/defaults/main.yml' file .......................................................................................... PASS
+ · Task file 'roles/webapp/tasks/main.yml' uses new variable names ................................................................................................... PASS
+ · The 'site.yml' playbook executes successfully ..................................................................................................................... PASS
+
+Overall lab grade: PASS
+
+[student@workstation ~]$ lab finish develop-review
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

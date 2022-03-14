@@ -1,0 +1,169 @@
+[student@workstation ~]$ lab start develop-git 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................... SUCCESS
+ · Configuring Git ................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................... SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................... SUCCESS
+
+[student@workstation ~]$ mkdir -p ~/git-repos
+[student@workstation ~]$ cd ~/git-repos
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/develop-git.git
+Cloning into 'develop-git'...
+remote: Enumerating objects: 6, done.
+remote: Counting objects: 100% (6/6), done.
+remote: Compressing objects: 100% (6/6), done.
+remote: Total 6 (delta 0), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (6/6), 1.51 KiB | 1.51 MiB/s, done.
+[student@workstation git-repos]$ ls
+develop-git
+[student@workstation git-repos]$ cd develop-git/
+[student@workstation develop-git]$ ls
+apache-setup.yml  templates
+[student@workstation develop-git]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation develop-git]$ git config --global user.name 'Student User'
+[student@workstation develop-git]$ git config --global user.email student@lab.example.com
+[student@workstation develop-git]$ git config --global push.default simple
+[student@workstation develop-git]$ git config --global credential.https://git.lab.example.com.username student
+[student@workstation develop-git]$ 
+[student@workstation develop-git]$ 
+[student@workstation develop-git]$ git config --global credential.helper cache --timeout=7200
+[student@workstation develop-git]$ git config --global -l 
+user.name=Student User
+user.email=student@lab.example.com
+push.default=simple
+credential.helper=store
+credential.helper=cache
+credential.https://git.lab.example.com.username=student
+[student@workstation develop-git]$ tree
+.
+├── apache-setup.yml
+└── templates
+    ├── httpd.conf.j2
+    └── index.html.j2
+
+1 directory, 3 files
+[student@workstation develop-git]$ vim inventory 
+[student@workstation develop-git]$ cat inventory
+[web_servers]
+serverd
+[student@workstation develop-git]$ vim ansible.cfg
+[student@workstation develop-git]$ cat ansible.cfg
+[defaults]
+inventory = inventory 
+remote_user = devops
+[student@workstation develop-git]$ 
+[student@workstation develop-git]$ 
+[student@workstation develop-git]$ vim apache-setup.yml 
+[student@workstation develop-git]$ git status
+On branch exercise
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   apache-setup.yml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	ansible.cfg
+	inventory
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[student@workstation develop-git]$ git add apache-setup.yml ansible.cfg inventory 
+[student@workstation develop-git]$ git status
+On branch exercise
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   ansible.cfg
+	modified:   apache-setup.yml
+	new file:   inventory
+
+[student@workstation develop-git]$ git commit -m "Target the web_servers group"
+[exercise 8e7a08b] Target the web_servers group
+ 3 files changed, 6 insertions(+), 1 deletion(-)
+ create mode 100644 ansible.cfg
+ create mode 100644 inventory
+[student@workstation develop-git]$ git push -u origin exercise
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (5/5), 493 bytes | 493.00 KiB/s, done.
+Total 5 (delta 1), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: To create a merge request for exercise, visit:
+remote:   https://git.lab.example.com/git/develop-git/-/merge_requests/new?merge_request%5Bsource_branch%5D=exercise
+remote: 
+To https://git.lab.example.com/git/develop-git.git
+ * [new branch]      exercise -> exercise
+Branch 'exercise' set up to track remote branch 'exercise' from 'origin'.
+[student@workstation develop-git]$ podman login -u admin -p redhat hub.lab.example.com
+Login Succeeded!
+[student@workstation develop-git]$ ansible-navigator run apache-setup.yml --eei ee-supported-rhel8:2.0 
+[student@workstation develop-git]$ curl serverd
+This is a test message RedHat 8.4 <br>
+Current Host: serverd <br>
+Server list: <br>
+serverd <br>
+
+[student@workstation develop-git]$ git status
+On branch exercise
+Your branch is up to date with 'origin/exercise'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.ssh/
+	ansible-navigator.log
+	apache-setup-artifact-2022-03-14T05:59:19.077676+00:00.json
+
+nothing added to commit but untracked files present (use "git add" to track)
+[student@workstation develop-git]$ vim .gitignore
+[student@workstation develop-git]$ cat .gitignore
+.ssh/
+ansible-navigator.log
+*-artifact-*
+[student@workstation develop-git]$ git status 
+On branch exercise
+Your branch is up to date with 'origin/exercise'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.gitignore
+
+nothing added to commit but untracked files present (use "git add" to track)
+[student@workstation develop-git]$ git add status
+fatal: pathspec 'status' did not match any files
+[student@workstation develop-git]$ git add .gitignore 
+[student@workstation develop-git]$ git commit -m "Ignore generated files"
+[exercise d2561db] Ignore generated files
+ 1 file changed, 3 insertions(+)
+ create mode 100644 .gitignore
+[student@workstation develop-git]$ git push
+Enumerating objects: 4, done.
+Counting objects: 100% (4/4), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (2/2), done.
+Writing objects: 100% (3/3), 323 bytes | 323.00 KiB/s, done.
+Total 3 (delta 1), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: To create a merge request for exercise, visit:
+remote:   https://git.lab.example.com/git/develop-git/-/merge_requests/new?merge_request%5Bsource_branch%5D=exercise
+remote: 
+To https://git.lab.example.com/git/develop-git.git
+   8e7a08b..d2561db  exercise -> exercise
+[student@workstation develop-git]$ cd
+[student@workstation ~]$ lab finish  develop-git
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................. SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+
