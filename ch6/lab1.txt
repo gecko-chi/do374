@@ -1,0 +1,672 @@
+[student@workstation ~]$ lab start task-review 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+ · Backing up the configuration of the systems ....................................................................................................................... SUCCESS
+
+[student@workstation ~]$ mkdir -p ~/git-repos/
+[student@workstation ~]$ cd ~/git-repos/
+[student@workstation git-repos]$ 
+[student@workstation git-repos]$ 
+[student@workstation git-repos]$ ls
+develop-git  develop-review  inventory-review  task-escalation  task-tagging
+[student@workstation git-repos]$ 
+[student@workstation git-repos]$ 
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/task-review.git 
+Cloning into 'task-review'...
+remote: Enumerating objects: 55, done.
+remote: Counting objects: 100% (55/55), done.
+remote: Compressing objects: 100% (42/42), done.
+remote: Total 55 (delta 3), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (55/55), 7.21 KiB | 923.00 KiB/s, done.
+[student@workstation git-repos]$ ls
+develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging
+[student@workstation git-repos]$ cd task-review/
+[student@workstation task-review]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation task-review]$ ls
+ansible.cfg  ansible-navigator.yml  cleanup_apache.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  group_vars  inventory.yml  roles  site.yml
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ cat ansible.cfg 
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+
+[privilege_escalation]
+become=true
+become_method=sudo
+become_user=root
+become_ask_pass=false
+[student@workstation task-review]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation task-review]$ cat cleanup_apache.yml 
+---
+- name: Ensure Apache is not deployed
+  hosts: web_servers
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure the packages are not installed
+      yum:
+        name:
+          - httpd
+          - php
+          - git
+          - php-mysqlnd
+        state: absent
+        autoremove: true
+...
+[student@workstation task-review]$ cat inventory.yml 
+---
+lb_servers:
+  hosts:
+    servera.lab.example.com:
+
+web_servers:
+  children:
+    a_web_servers:
+    b_web_servers:
+
+# Group "A" of Web Servers
+a_web_servers:
+  hosts:
+    serverb.lab.example.com:
+
+# Group "B" of Web Servers
+b_web_servers:
+  hosts:
+    serverc.lab.example.com:
+[student@workstation task-review]$ ls
+ansible.cfg  ansible-navigator.yml  cleanup_apache.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  group_vars  inventory.yml  roles  site.yml
+[student@workstation task-review]$ cat deploy_apache.yml 
+---
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  gather_facts: false
+
+  roles:
+    # The "apache" role has a dependency on the "firewall" role.
+    # The "firewall" role requires the "firewall_rules" variable.
+    - role: apache
+[student@workstation task-review]$ cat deploy_haproxy.yml 
+---
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  force_handlers: true
+  gather_facts: false
+
+  roles:
+    # The "haproxy" role has a dependency on the "firewall" role.
+    # The "firewall" role requires the "firewall_rules" variable.
+    - role: haproxy
+[student@workstation task-review]$ cat deploy_webapp.yml 
+---
+- name: Ensure Web App is deployed
+  hosts: web_servers
+  gather_facts: false
+  vars:
+    - webapp_version: v1.0
+
+  roles:
+    - role: webapp
+[student@workstation task-review]$ cat site.yml 
+---
+- name: Deploy HAProxy
+  import_playbook: deploy_haproxy.yml
+
+- name: Deploy Web Server
+  import_playbook: deploy_apache.yml
+
+- name: Deploy Web App
+  import_playbook: deploy_webapp.yml
+[student@workstation task-review]$ ls
+ansible.cfg  ansible-navigator.yml  cleanup_apache.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  group_vars  inventory.yml  roles  site.yml
+[student@workstation task-review]$ tree group_vars/
+group_vars/
+├── lb_servers
+│   ├── firewall.yml
+│   └── haproxy.yml
+└── web_servers
+    ├── firewall.yml
+    └── webapp.yml
+
+2 directories, 4 files
+[student@workstation task-review]$ cat group_vars/lb_servers/firewall.yml 
+---
+firewall_rules:
+  # Allow 80/tcp connections
+  - port: 80/tcp
+[student@workstation task-review]$ cat group_vars/lb_servers/haproxy.yml 
+---
+haproxy_appservers:
+  - name: serverb.lab.example.com
+    ip: 172.25.250.11
+    backend_port: 80
+
+  - name: serverc.lab.example.com
+    ip: 172.25.250.12
+    backend_port: 80
+[student@workstation task-review]$ cat group_vars/web_servers/firewall.yml 
+---
+firewall_rules:
+  # Allow http requests from the load_balancer.
+  - zone: internal
+    service: http
+  - zone: internal
+    source: "172.25.250.10"
+[student@workstation task-review]$ cat group_vars/web_servers/webapp.yml 
+---
+webapp_message: "Hello from {{ inventory_hostname }}"
+webapp_version: v1.1
+[student@workstation task-review]$ 
+[student@workstation task-review]$ ls -l roles/
+total 0
+drwxrwxr-x. 5 student student 44 Mar 15 07:21 apache
+drwxrwxr-x. 7 student student 76 Mar 15 07:21 firewall
+drwxrwxr-x. 8 student student 93 Mar 15 07:21 haproxy
+drwxrwxr-x. 6 student student 60 Mar 15 07:21 webapp
+[student@workstation task-review]$ cat ansible.cfg 
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+
+[privilege_escalation]
+become=true
+become_method=sudo
+become_user=root
+become_ask_pass=false
+[student@workstation task-review]$ vim ansible.cfg
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ cat ansible.cfg
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+
+[privilege_escalation]
+become=false
+become_method=sudo
+become_user=root
+become_ask_pass=false
+[student@workstation task-review]$ 
+[student@workstation task-review]$ head deploy_apache.yml 
+---
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  gather_facts: false
+
+  roles:
+    # The "apache" role has a dependency on the "firewall" role.
+    # The "firewall" role requires the "firewall_rules" variable.
+    - role: apache
+[student@workstation task-review]$ vim deploy_apache.yml
+[student@workstation task-review]$ cat deploy_apache.yml
+---
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  gather_facts: false
+
+  roles:
+    # The "apache" role has a dependency on the "firewall" role.
+    # The "firewall" role requires the "firewall_rules" variable.
+    - role: apache
+[student@workstation task-review]$ 
+[student@workstation task-review]$ vim deploy_apache.yml
+[student@workstation task-review]$ cat deploy_apache.yml
+---
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  gather_facts: false
+  become: true
+
+  roles:
+    # The "apache" role has a dependency on the "firewall" role.
+    # The "firewall" role requires the "firewall_rules" variable.
+    - role: apache
+[student@workstation task-review]$ cat deploy_haproxy.yml 
+---
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  force_handlers: true
+  gather_facts: false
+
+  roles:
+    # The "haproxy" role has a dependency on the "firewall" role.
+    # The "firewall" role requires the "firewall_rules" variable.
+    - role: haproxy
+[student@workstation task-review]$ vim deploy_haproxy.yml
+[student@workstation task-review]$ cat deploy_haproxy.yml
+---
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  force_handlers: true
+  gather_facts: false
+  become: true
+
+  roles:
+    # The "haproxy" role has a dependency on the "firewall" role.
+    # The "firewall" role requires the "firewall_rules" variable.
+    - role: haproxy
+[student@workstation task-review]$ cat deploy_webapp.yml 
+---
+- name: Ensure Web App is deployed
+  hosts: web_servers
+  gather_facts: false
+  vars:
+    - webapp_version: v1.0
+
+  roles:
+    - role: webapp
+[student@workstation task-review]$ vim deploy_webapp.yml
+[student@workstation task-review]$ cat deploy_webapp.yml
+---
+- name: Ensure Web App is deployed
+  hosts: web_servers
+  gather_facts: false
+  become: true
+  vars:
+    - webapp_version: v1.0
+
+  roles:
+    - role: webapp
+[student@workstation task-review]$ 
+[student@workstation task-review]$ cat deploy_haproxy.yml 
+---
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  force_handlers: true
+  gather_facts: false
+  become: true
+
+  roles:
+    # The "haproxy" role has a dependency on the "firewall" role.
+    # The "firewall" role requires the "firewall_rules" variable.
+    - role: haproxy
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ vim deploy_haproxy.yml
+[student@workstation task-review]$ cat deploy_haproxy.yml
+---
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  force_handlers: true
+  gather_facts: false
+  become: true
+  pre_tasks:
+    - name: Setting the maintenance message
+      copy:
+        dest: /tmp/site.ready
+        content: "Playbook site.yml ready to start"
+
+  roles:
+    # The "haproxy" role has a dependency on the "firewall" role.
+    # The "firewall" role requires the "firewall_rules" variable.
+    - role: haproxy
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ cat roles/haproxy/handlers/main.yml 
+---
+# handlers file for haproxy
+
+- name: restart haproxy
+  service:
+    name: haproxy
+    state: restarted
+
+- name: reload haproxy
+  service:
+    name: haproxy
+    state: reloaded
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ vim roles/haproxy/handlers/main.yml
+[student@workstation task-review]$ cat roles/haproxy/handlers/main.yml
+---
+# handlers file for haproxy
+
+- name: restart haproxy
+  service:
+    name: haproxy
+    state: restarted
+
+- name: reload haproxy
+  service:
+    name: haproxy
+    state: reloaded
+
+- name: haproxy filehandler
+  copy:
+    dest: /tmp/haproxy.status
+    content: "Reloaded"
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ cat roles/haproxy/tasks/main.yml 
+---
+# tasks file for haproxy
+
+- name: Ensure haproxy packages are present
+  yum:
+    name:
+      - haproxy
+      - socat
+    state: present
+
+- name: Ensure haproxy is started and enabled
+  service:
+    name: haproxy
+    state: started
+    enabled: true
+
+- name: Ensure haproxy configuration is set
+  template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: 0644
+  notify: reload haproxy
+[student@workstation task-review]$ vim roles/haproxy/tasks/main.yml
+[student@workstation task-review]$ cat roles/haproxy/tasks/main.yml
+---
+# tasks file for haproxy
+
+- name: Ensure haproxy packages are present
+  yum:
+    name:
+      - haproxy
+      - socat
+    state: present
+
+- name: Ensure haproxy is started and enabled
+  service:
+    name: haproxy
+    state: started
+    enabled: true
+
+- name: Ensure haproxy configuration is set
+  template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: 0644
+  notify: 
+    - reload haproxy
+    - haproxy filehandler
+[student@workstation task-review]$ cat roles/apache/tasks/main.yml 
+---
+# tasks file for apache
+
+- name: Ensure httpd packages are installed
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - httpd
+    - php
+    - git
+    - php-mysqlnd
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: true
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: true
+[student@workstation task-review]$ 
+[student@workstation task-review]$ vim roles/apache/tasks/main.yml
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ cat roles/apache/tasks/main.yml
+---
+# tasks file for apache
+
+- name: Ensure httpd packages are installed
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - httpd
+    - php
+    - git
+    - php-mysqlnd
+  tags: apache_installer
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: true
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: true
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ cat ansible.cfg 
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+
+[privilege_escalation]
+become=false
+become_method=sudo
+become_user=root
+become_ask_pass=false
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ vim ansible.cfg
+[student@workstation task-review]$ cat ansible.cfg
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+callbacks_enabled=ansible.posix.timer,ansible.posix.profile_tasks
+
+[privilege_escalation]
+become=false
+become_method=sudo
+become_user=root
+become_ask_pass=false
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ ansible-navigator run site.yml 
+[student@workstation task-review]$ grep -Rl "Ensure httpd packages are installed"
+roles/apache/tasks/main.yml
+site-artifact-2022-03-15T11:32:08.339427+00:00.json
+[student@workstation task-review]$ 
+[student@workstation task-review]$ cat roles/apache/tasks/main.yml 
+---
+# tasks file for apache
+
+- name: Ensure httpd packages are installed
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - httpd
+    - php
+    - git
+    - php-mysqlnd
+  tags: apache_installer
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: true
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: true
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ vim roles/apache/tasks/main.yml
+[student@workstation task-review]$ cat roles/apache/tasks/main.yml
+---
+# tasks file for apache
+
+- name: Ensure httpd packages are installed
+  yum:
+    name: 
+    - httpd
+    - php
+    - git
+    - php-mysqlnd
+    state: present
+  tags: apache_installer
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: true
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: true
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ 
+[student@workstation task-review]$ ansible-navigator run cleanup_apache.yml 
+[student@workstation task-review]$ ansible-navigator run site.yml --tags apache_installer 
+[student@workstation task-review]$ git add .
+[student@workstation task-review]$ git commit -m "Lab updates"
+[exercise 97e075c] Lab updates
+ 12 files changed, 3329 insertions(+), 5 deletions(-)
+ create mode 100644 .ssh/known_hosts
+ create mode 100644 ansible-navigator.log
+ create mode 100644 cleanup_apache-artifact-2022-03-15T11:34:50.136593+00:00.json
+ create mode 100644 site-artifact-2022-03-15T11:32:08.339427+00:00.json
+ create mode 100644 site-artifact-2022-03-15T11:35:33.623064+00:00.json
+[student@workstation task-review]$ 
+[student@workstation task-review]$ vim ~.gitignore
+[student@workstation task-review]$ cp ~.gitignore .gitignore
+[student@workstation task-review]$ git add .gitignore
+[student@workstation task-review]$ git status 
+On branch exercise
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   .gitignore
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	~.gitignore
+
+[student@workstation task-review]$ rm -f \~.gitignore 
+[student@workstation task-review]$ git status
+On branch exercise
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   .gitignore
+
+[student@workstation task-review]$ git rm .ssh/known_hosts ansible-navigator.log cleanup_apache-artifact-2022-03-15T11\:34\:50.136593+00\:00.json site-artifact-*.json
+rm '.ssh/known_hosts'
+rm 'ansible-navigator.log'
+rm 'cleanup_apache-artifact-2022-03-15T11:34:50.136593+00:00.json'
+rm 'site-artifact-2022-03-15T11:32:08.339427+00:00.json'
+rm 'site-artifact-2022-03-15T11:35:33.623064+00:00.json'
+[student@workstation task-review]$ 
+[student@workstation task-review]$ git status
+On branch exercise
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   .gitignore
+	deleted:    .ssh/known_hosts
+	deleted:    ansible-navigator.log
+	deleted:    cleanup_apache-artifact-2022-03-15T11:34:50.136593+00:00.json
+	deleted:    site-artifact-2022-03-15T11:32:08.339427+00:00.json
+	deleted:    site-artifact-2022-03-15T11:35:33.623064+00:00.json
+
+[student@workstation task-review]$ git commit -m "Labupdated"
+[exercise 1306b79] Labupdated
+ 6 files changed, 3 insertions(+), 3308 deletions(-)
+ create mode 100644 .gitignore
+ delete mode 100644 .ssh/known_hosts
+ delete mode 100644 ansible-navigator.log
+ delete mode 100644 cleanup_apache-artifact-2022-03-15T11:34:50.136593+00:00.json
+ delete mode 100644 site-artifact-2022-03-15T11:32:08.339427+00:00.json
+ delete mode 100644 site-artifact-2022-03-15T11:35:33.623064+00:00.json
+[student@workstation task-review]$ git status 
+On branch exercise
+nothing to commit, working tree clean
+[student@workstation task-review]$ git push -u origin exercise
+Enumerating objects: 37, done.
+Counting objects: 100% (37/37), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (18/18), done.
+Writing objects: 100% (24/24), 17.86 KiB | 3.57 MiB/s, done.
+Total 24 (delta 8), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: To create a merge request for exercise, visit:
+remote:   https://git.lab.example.com/git/task-review/-/merge_requests/new?merge_request%5Bsource_branch%5D=exercise
+remote: 
+To https://git.lab.example.com/git/task-review.git
+ * [new branch]      exercise -> exercise
+Branch 'exercise' set up to track remote branch 'exercise' from 'origin'.
+[student@workstation task-review]$ cd
+[student@workstation ~]$ lab grade task-review 
+
+Grading lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+ · Preparing the system for grading .................................................................................................................................. SUCCESS
+ · Project directory contains the correct Git repository ............................................................................................................. PASS
+ · The ansible.cfg file is correctly configured ...................................................................................................................... PASS
+ · The site.yml playbook runs successfully ........................................................................................................................... PASS
+ · The copy task runs before any other task .......................................................................................................................... PASS
+ · The /tmp/site.ready file has been created ......................................................................................................................... PASS
+ · The /tmp/site.ready file has the expected content ................................................................................................................. PASS
+ · The new handler exists and has been called ........................................................................................................................ PASS
+ · The /tmp/haproxy.status file has been created ..................................................................................................................... PASS
+ · The /tmp/haproxy.status file has the expected content ............................................................................................................. PASS
+ · The apache_installer tag is correctly configured .................................................................................................................. PASS
+ · The expensive task has been refactored ............................................................................................................................ PASS
+ · Cleaning up the system after grading .............................................................................................................................. SUCCESS
+
+Overall lab grade: PASS
+
+[student@workstation ~]$ lab finish task-review
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

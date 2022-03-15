@@ -1,0 +1,332 @@
+[student@workstation ~]$ lab start task-speed 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Ensuring required packages are available .......................................................................................................................... SUCCESS
+ · Creating fake web content on workstation .......................................................................................................................... -      SUCCESS
+
+[student@workstation ~]$ ls
+config-ansible    Desktop            Documents  inventory-dynamic    lab_do374       manage-review     Pictures        task-speed
+config-navigator  develop-navigator  Downloads  inventory-variables  manage-finding  manage-selecting  Public          Templates
+config-review     develop-practices  git-repos  inventory-yaml       manage-reusing  Music             task-execution  Videos
+[student@workstation ~]$ cd task-speed/
+[student@workstation task-speed]$ ls
+ansible.cfg  ansible-navigator.yml  clean.yml  deploy_webservers.yml  deploy_webservers.yml.backup  inventory.yml  web_content
+[student@workstation task-speed]$ cat ansible.cfg 
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+[student@workstation task-speed]$ cat inventory.yml 
+lb_servers:
+  hosts:
+    servera.lab.example.com:
+
+web_servers:
+  children:
+    a_web_servers:
+    b_web_servers:
+
+
+# Group "A" of Web Servers
+a_web_servers:
+  hosts:
+    serverb.lab.example.com:
+
+
+# Group "B" of Web Servers
+b_web_servers:
+  hosts:
+    serverc.lab.example.com:
+
+[student@workstation task-speed]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation task-speed]$ cat clean.yml 
+---
+- name: Clean Web Servers
+  hosts: web_servers
+  become: True
+  gather_facts: False
+
+  tasks:
+    - name: Ensure the packages are removed
+      yum:
+        name:
+          - httpd
+          - mod_ssl
+          - httpd-tools
+          - mariadb-server
+          - mariadb
+          - php
+          - php-mysqlnd
+        state: absent
+        autoremove: True
+
+    - name: Ensure the web content is removed
+      file:
+        path: /var/www/html/
+        state: absent
+[student@workstation task-speed]$ ls
+ansible.cfg  ansible-navigator.yml  clean.yml  deploy_webservers.yml  deploy_webservers.yml.backup  inventory.yml  web_content
+[student@workstation task-speed]$ cat deploy_webservers.yml
+---
+- name: Deploy the web servers
+  hosts: web_servers
+  become: True
+
+  tasks:
+    - name: Ensure required packages are installed
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - httpd
+        - mod_ssl
+        - httpd-tools
+        - mariadb-server
+        - mariadb
+        - php
+        - php-mysqlnd
+
+    - name: Ensure the services are enabled
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: True
+      loop:
+        - httpd
+        - mariadb
+
+    - name: Ensure the web content is installed
+      copy:
+        src: web_content/
+        dest: /var/www/html
+[student@workstation task-speed]$ ls web_content/
+data.img  rhel7.0  rhel7.1  rhel7.2  rhel7.3  rhel7.4  rhel7.5  rhel7.6  rhel7.7  rhel7.8  rhel7.9  rhel8.0  rhel8.1  rhel8.2  rhel8.3  rhel8.4
+[student@workstation task-speed]$ cat ansible.cfg 
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ vim ansible.cfg
+[student@workstation task-speed]$ cat ansible.cfg
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+callbacks_enabled=timer, profile_tasks
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ ansible-navigator run -m stdout deploy_webservers.yml
+
+PLAY [Deploy the web servers] **************************************************
+
+TASK [Gathering Facts] *********************************************************
+Tuesday 15 March 2022  11:12:35 +0000 (0:00:00.016)       0:00:00.016 ********* 
+ok: [serverb.lab.example.com]
+ok: [serverc.lab.example.com]
+
+TASK [Ensure required packages are installed] **********************************
+Tuesday 15 March 2022  11:12:36 +0000 (0:00:01.587)       0:00:01.603 ********* 
+changed: [serverc.lab.example.com] => (item=httpd)
+changed: [serverb.lab.example.com] => (item=httpd)
+changed: [serverb.lab.example.com] => (item=mod_ssl)
+changed: [serverc.lab.example.com] => (item=mod_ssl)
+ok: [serverb.lab.example.com] => (item=httpd-tools)
+ok: [serverc.lab.example.com] => (item=httpd-tools)
+changed: [serverb.lab.example.com] => (item=mariadb-server)
+changed: [serverc.lab.example.com] => (item=mariadb-server)
+ok: [serverb.lab.example.com] => (item=mariadb)
+ok: [serverc.lab.example.com] => (item=mariadb)
+changed: [serverb.lab.example.com] => (item=php)
+ok: [serverb.lab.example.com] => (item=php-mysqlnd)
+changed: [serverc.lab.example.com] => (item=php)
+ok: [serverc.lab.example.com] => (item=php-mysqlnd)
+
+TASK [Ensure the services are enabled] *****************************************
+Tuesday 15 March 2022  11:13:01 +0000 (0:00:24.342)       0:00:25.946 ********* 
+changed: [serverb.lab.example.com] => (item=httpd)
+changed: [serverc.lab.example.com] => (item=httpd)
+changed: [serverb.lab.example.com] => (item=mariadb)
+changed: [serverc.lab.example.com] => (item=mariadb)
+
+TASK [Ensure the web content is installed] *************************************
+Tuesday 15 March 2022  11:13:08 +0000 (0:00:07.257)       0:00:33.203 ********* 
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+PLAY RECAP *********************************************************************
+serverb.lab.example.com    : ok=4    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=4    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+Playbook run took 0 days, 0 hours, 1 minutes, 8 seconds
+Tuesday 15 March 2022  11:13:43 +0000 (0:00:35.038)       0:01:08.242 ********* 
+=============================================================================== 
+Ensure the web content is installed ------------------------------------ 35.04s
+Ensure required packages are installed --------------------------------- 24.34s
+Ensure the services are enabled ----------------------------------------- 7.26s
+Gathering Facts --------------------------------------------------------- 1.59s
+[student@workstation task-speed]$ cat deploy_webservers.yml
+---
+- name: Deploy the web servers
+  hosts: web_servers
+  become: True
+
+  tasks:
+    - name: Ensure required packages are installed
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - httpd
+        - mod_ssl
+        - httpd-tools
+        - mariadb-server
+        - mariadb
+        - php
+        - php-mysqlnd
+
+    - name: Ensure the services are enabled
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: True
+      loop:
+        - httpd
+        - mariadb
+
+    - name: Ensure the web content is installed
+      copy:
+        src: web_content/
+        dest: /var/www/html
+[student@workstation task-speed]$ vim deploy_webservers.yml
+[student@workstation task-speed]$ cat deploy_webservers.yml
+---
+- name: Deploy the web servers
+  hosts: web_servers
+  become: True
+  gather_facts: False
+
+  tasks:
+    - name: Ensure required packages are installed
+      yum:
+        name:
+          - httpd
+          - mod_ssl
+          - httpd-tools
+          - mariadb-server
+          - mariadb
+          - php
+          - php-mysqlnd
+        state: present
+
+    - name: Ensure the services are enabled
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: True
+      loop:
+        - httpd
+        - mariadb
+
+    - name: Ensure the web content is installed
+      ansible.posix.synchronize:
+        src: web_content/
+        dest: /var/www/html
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ ansible-navigator run -m stdout clean.yml 
+
+PLAY [Clean Web Servers] *******************************************************
+
+TASK [Ensure the packages are removed] *****************************************
+Tuesday 15 March 2022  11:16:52 +0000 (0:00:00.022)       0:00:00.022 ********* 
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+TASK [Ensure the web content is removed] ***************************************
+Tuesday 15 March 2022  11:17:02 +0000 (0:00:10.398)       0:00:10.420 ********* 
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+PLAY RECAP *********************************************************************
+serverb.lab.example.com    : ok=2    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=2    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+Playbook run took 0 days, 0 hours, 0 minutes, 11 seconds
+Tuesday 15 March 2022  11:17:03 +0000 (0:00:00.785)       0:00:11.206 ********* 
+=============================================================================== 
+Ensure the packages are removed ---------------------------------------- 10.40s
+Ensure the web content is removed --------------------------------------- 0.79s
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ ansible-navigator run -m stdout deploy_webservers.yml
+
+PLAY [Deploy the web servers] **************************************************
+
+TASK [Ensure required packages are installed] **********************************
+Tuesday 15 March 2022  11:17:26 +0000 (0:00:00.025)       0:00:00.025 ********* 
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+
+TASK [Ensure the services are enabled] *****************************************
+Tuesday 15 March 2022  11:17:39 +0000 (0:00:12.311)       0:00:12.336 ********* 
+changed: [serverc.lab.example.com] => (item=httpd)
+changed: [serverb.lab.example.com] => (item=httpd)
+changed: [serverb.lab.example.com] => (item=mariadb)
+changed: [serverc.lab.example.com] => (item=mariadb)
+
+TASK [Ensure the web content is installed] *************************************
+Tuesday 15 March 2022  11:17:42 +0000 (0:00:03.570)       0:00:15.907 ********* 
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+PLAY RECAP *********************************************************************
+serverb.lab.example.com    : ok=3    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=3    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+Playbook run took 0 days, 0 hours, 0 minutes, 17 seconds
+Tuesday 15 March 2022  11:17:44 +0000 (0:00:01.534)       0:00:17.441 ********* 
+=============================================================================== 
+Ensure required packages are installed --------------------------------- 12.31s
+Ensure the services are enabled ----------------------------------------- 3.57s
+Ensure the web content is installed ------------------------------------- 1.55s
+[student@workstation task-speed]$ cat ansible.cfg 
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+callbacks_enabled=timer, profile_tasks
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ vim ansible.cfg
+[student@workstation task-speed]$ cat ansible.cfg
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ 
+[student@workstation task-speed]$ cd
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+[student@workstation ~]$ lab finish task-speed 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Executing cleanup playbook ........................................................................................................................................ SUCCESS
+ · Removing the fake web content from workstation .................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

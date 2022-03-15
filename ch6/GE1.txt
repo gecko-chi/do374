@@ -1,0 +1,268 @@
+[student@workstation ~]$ lab start task-escalation 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ mkdir -p git-repos/
+[student@workstation ~]$ cd git-repos/
+[student@workstation git-repos]$ 
+[student@workstation git-repos]$ ls
+develop-git  develop-review  inventory-review
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/task-escalation.git
+Cloning into 'task-escalation'...
+remote: Enumerating objects: 6, done.
+remote: Counting objects: 100% (6/6), done.
+remote: Compressing objects: 100% (6/6), done.
+remote: Total 6 (delta 0), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (6/6), 950 bytes | 950.00 KiB/s, done.
+[student@workstation git-repos]$ ls
+develop-git  develop-review  inventory-review  task-escalation
+[student@workstation git-repos]$ cd task-escalation/
+[student@workstation task-escalation]$ ls
+ansible.cfg  ansible-navigator.yml  intranet.yml  inventory
+[student@workstation task-escalation]$ git checkout -b exercise 
+Switched to a new branch 'exercise'
+[student@workstation task-escalation]$ git checkout -b exercise1
+Switched to a new branch 'exercise1'
+[student@workstation task-escalation]$ cat ansible
+cat: ansible: No such file or directory
+[student@workstation task-escalation]$ ls
+ansible.cfg  ansible-navigator.yml  intranet.yml  inventory
+[student@workstation task-escalation]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+
+[privilege_escalation]
+become=False
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation task-escalation]$ 
+[student@workstation task-escalation]$ cat inventory 
+[servera]
+servera.lab.example.com
+
+[web:children]
+servera
+
+[student@workstation task-escalation]$ cat intranet.yml 
+---
+- name: Enable intranet services
+  hosts: servera.lab.example.com
+  tasks:
+    - name: latest version of httpd and firewalld installed
+      yum:
+        name:
+          - httpd
+          - firewalld
+        state: latest
+
+    - name: test html page is installed
+      copy:
+        content: "Welcome to the example.com intranet!\n"
+        dest: /var/www/html/index.html
+
+    - name: firewalld enabled and running
+      service:
+        name: firewalld
+        enabled: true
+        state: started
+
+    - name: firewalld permits http service
+      ansible.posix.firewalld:
+        service: http
+        permanent: true
+        state: enabled
+        immediate: yes
+
+    - name: httpd enabled and running
+      service:
+        name: httpd
+        enabled: true
+        state: started
+
+- name: Test intranet web server
+  hosts: localhost
+  tasks:
+    - name: connect to intranet web server
+      uri:
+        url: http://servera.lab.example.com
+        return_content: yes
+        status_code: 200
+
+[student@workstation task-escalation]$ vim intranet.yml 
+[student@workstation task-escalation]$ cat intranet.yml
+---
+- name: Enable intranet services
+  hosts: servera.lab.example.com
+  tasks:
+    - block: 
+      - name: latest version of httpd and firewalld installed
+        yum:
+          name:
+            - httpd
+            - firewalld
+          state: latest
+
+      - name: test html page is installed
+        copy:
+          content: "Welcome to the example.com intranet!\n"
+          dest: /var/www/html/index.html
+
+      - name: firewalld enabled and running
+        service:
+          name: firewalld
+          enabled: true
+          state: started
+
+      - name: firewalld permits http service
+        ansible.posix.firewalld:
+          service: http
+          permanent: true
+          state: enabled
+          immediate: yes
+
+      - name: httpd enabled and running
+        service:
+          name: httpd
+          enabled: true
+          state: started
+      become: true
+
+- name: Test intranet web server
+  hosts: localhost
+  tasks:
+    - name: connect to intranet web server
+      uri:
+        url: http://servera.lab.example.com
+        return_content: yes
+        status_code: 200
+
+[student@workstation task-escalation]$ 
+[student@workstation task-escalation]$ ansible-navigator run intranet.yml 
+[student@workstation task-escalation]$ curl servera.lab.example.com 
+Welcome to the example.com intranet!
+[student@workstation task-escalation]$ 
+[student@workstation task-escalation]$ 
+[student@workstation task-escalation]$ cat intranet.yml 
+---
+- name: Enable intranet services
+  hosts: servera.lab.example.com
+  tasks:
+    - block: 
+      - name: latest version of httpd and firewalld installed
+        yum:
+          name:
+            - httpd
+            - firewalld
+          state: latest
+
+      - name: test html page is installed
+        copy:
+          content: "Welcome to the example.com intranet!\n"
+          dest: /var/www/html/index.html
+
+      - name: firewalld enabled and running
+        service:
+          name: firewalld
+          enabled: true
+          state: started
+
+      - name: firewalld permits http service
+        ansible.posix.firewalld:
+          service: http
+          permanent: true
+          state: enabled
+          immediate: yes
+
+      - name: httpd enabled and running
+        service:
+          name: httpd
+          enabled: true
+          state: started
+      become: true
+
+- name: Test intranet web server
+  hosts: localhost
+  tasks:
+    - name: connect to intranet web server
+      uri:
+        url: http://servera.lab.example.com
+        return_content: yes
+        status_code: 200
+
+[student@workstation task-escalation]$ vim intranet.yml
+[student@workstation task-escalation]$ cat intranet.yml
+---
+- name: Enable intranet services
+  hosts: servera.lab.example.com
+  become: true
+  tasks:
+      - name: latest version of httpd and firewalld installed
+        yum:
+          name:
+            - httpd
+            - firewalld
+          state: latest
+
+      - name: test html page is installed
+        copy:
+          content: "Welcome to the example.com intranet!\n"
+          dest: /var/www/html/index.html
+
+      - name: firewalld enabled and running
+        service:
+          name: firewalld
+          enabled: true
+          state: started
+
+      - name: firewalld permits http service
+        ansible.posix.firewalld:
+          service: http
+          permanent: true
+          state: enabled
+          immediate: yes
+
+      - name: httpd enabled and running
+        service:
+          name: httpd
+          enabled: true
+          state: started
+
+- name: Test intranet web server
+  hosts: localhost
+  become: false
+  tasks:
+    - name: connect to intranet web server
+      uri:
+        url: http://servera.lab.example.com
+        return_content: yes
+        status_code: 200
+
+[student@workstation task-escalation]$ ansible-navigator run intranet.yml 
+[student@workstation task-escalation]$ 
+[student@workstation task-escalation]$ 
+[student@workstation task-escalation]$ curl servera.lab.example.com 
+Welcome to the example.com intranet!
+[student@workstation task-escalation]$ 
+[student@workstation task-escalation]$ cd
+[student@workstation ~]$ 
+[student@workstation ~]$ lab finish task-escalation 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up exercise .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

@@ -1,0 +1,379 @@
+[student@workstation ~]$ lab start task-tagging 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Ensuring required packages are available .......................................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+config-ansible    Desktop            Documents  inventory-dynamic    lab_do374       manage-review     Pictures        Templates
+config-navigator  develop-navigator  Downloads  inventory-variables  manage-finding  manage-selecting  Public          Videos
+config-review     develop-practices  git-repos  inventory-yaml       manage-reusing  Music             task-execution
+[student@workstation ~]$ mkdir -p ~/git-repos/
+[student@workstation ~]$ cd ~/git-repos/
+[student@workstation git-repos]$ ls
+develop-git  develop-review  inventory-review  task-escalation
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/task-tagging.git
+Cloning into 'task-tagging'...
+remote: Enumerating objects: 57, done.
+remote: Counting objects: 100% (57/57), done.
+remote: Compressing objects: 100% (43/43), done.
+remote: Total 57 (delta 4), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (57/57), 7.52 KiB | 856.00 KiB/s, done.
+[student@workstation git-repos]$ ls
+develop-git  develop-review  inventory-review  task-escalation  task-tagging
+[student@workstation git-repos]$ cd task-tagging/
+[student@workstation task-tagging]$ ls
+ansible.cfg  ansible-navigator.yml  appservers.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  group_vars  inventory.yml  roles  site.yml
+[student@workstation task-tagging]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation task-tagging]$ ls
+ansible.cfg  ansible-navigator.yml  appservers.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  group_vars  inventory.yml  roles  site.yml
+[student@workstation task-tagging]$ cat ansible.cfg 
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+
+
+[student@workstation task-tagging]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation task-tagging]$ cat inventory.yml 
+lb_servers:
+  hosts:
+    servera.lab.example.com:
+
+web_servers:
+  children:
+    a_web_servers:
+    b_web_servers:
+
+
+# Group "A" of Web Servers
+a_web_servers:
+  hosts:
+    serverb.lab.example.com:
+
+
+# Group "B" of Web Servers
+b_web_servers:
+  hosts:
+    serverc.lab.example.com:
+
+[student@workstation task-tagging]$ cat appservers.yml 
+
+
+appservers:
+  - name: serverb.lab.example.com
+    ip: "172.25.250.11"
+  - name: serverc.lab.example.com
+    ip: "172.25.250.12"
+
+
+[student@workstation task-tagging]$ ls
+ansible.cfg  ansible-navigator.yml  appservers.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  group_vars  inventory.yml  roles  site.yml
+[student@workstation task-tagging]$ vim test_webapp.yml
+[student@workstation task-tagging]$ cat test_webapp.yml
+---
+- name: Web application smoke test 
+  hosts: web_servers
+  gather_facts: no
+  tasks:
+    - name: Verify content of http://localhost
+      uri: 
+        url: http://localhost
+        return_content: yes
+      register: test_url
+      failed_when: "'Hello from' not in test_url.content"
+      tags:
+        - tests
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ ls
+ansible.cfg  ansible-navigator.yml  appservers.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  group_vars  inventory.yml  roles  site.yml  test_webapp.yml
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ cat site.yml 
+
+- name: Deploy HAProxy
+  import_playbook: deploy_haproxy.yml
+
+- name: Deploy Web Server
+  import_playbook: deploy_apache.yml
+
+- name: Deploy Web App
+  import_playbook: deploy_webapp.yml
+
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ vim site.yml
+[student@workstation task-tagging]$ cat site.yml
+
+- name: Deploy HAProxy
+  import_playbook: deploy_haproxy.yml
+
+- name: Deploy Web Server
+  import_playbook: deploy_apache.yml
+
+- name: Deploy Web App
+  import_playbook: deploy_webapp.yml
+
+- name: Test deployed Web App
+  import_playbook: test_webapp.yml
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ 
+[student@workstation task-tagging]$ ansible-navigator run -m stdout -i inventory.yml --tags tests
+usage: ansible-playbook [-h] [--version] [-v] [-k]
+                        [--private-key PRIVATE_KEY_FILE] [-u REMOTE_USER]
+                        [-c CONNECTION] [-T TIMEOUT]
+                        [--ssh-common-args SSH_COMMON_ARGS]
+                        [--sftp-extra-args SFTP_EXTRA_ARGS]
+                        [--scp-extra-args SCP_EXTRA_ARGS]
+                        [--ssh-extra-args SSH_EXTRA_ARGS] [--force-handlers]
+                        [--flush-cache] [-b] [--become-method BECOME_METHOD]
+                        [--become-user BECOME_USER] [-K] [-t TAGS]
+                        [--skip-tags SKIP_TAGS] [-C] [--syntax-check] [-D]
+                        [-i INVENTORY] [--list-hosts] [-l SUBSET]
+                        [-e EXTRA_VARS] [--vault-id VAULT_IDS]
+                        [--ask-vault-password | --vault-password-file VAULT_PASSWORD_FILES]
+                        [-f FORKS] [-M MODULE_PATH] [--list-tasks]
+                        [--list-tags] [--step] [--start-at-task START_AT_TASK]
+                        playbook [playbook ...]
+ansible-playbook: error: argument -t/--tags: expected one argument
+ 
+usage: ansible-playbook [-h] [--version] [-v] [-k]
+                        [--private-key PRIVATE_KEY_FILE] [-u REMOTE_USER]
+                        [-c CONNECTION] [-T TIMEOUT]
+                        [--ssh-common-args SSH_COMMON_ARGS]
+                        [--sftp-extra-args SFTP_EXTRA_ARGS]
+                        [--scp-extra-args SCP_EXTRA_ARGS]
+                        [--ssh-extra-args SSH_EXTRA_ARGS] [--force-handlers]
+                        [--flush-cache] [-b] [--become-method BECOME_METHOD]
+                        [--become-user BECOME_USER] [-K] [-t TAGS]
+                        [--skip-tags SKIP_TAGS] [-C] [--syntax-check] [-D]
+                        [-i INVENTORY] [--list-hosts] [-l SUBSET]
+                        [-e EXTRA_VARS] [--vault-id VAULT_IDS]
+                        [--ask-vault-password | --vault-password-file VAULT_PASSWORD_FILES]
+                        [-f FORKS] [-M MODULE_PATH] [--list-tasks]
+                        [--list-tags] [--step] [--start-at-task START_AT_TASK]
+                        playbook [playbook ...]
+Runs Ansible playbooks, executing the defined tasks on the targeted hosts.
+positional arguments:
+  playbook              Playbook(s)
+optional arguments:
+  --ask-vault-password, --ask-vault-pass
+                        ask for vault password
+  --flush-cache         clear the fact cache for every host in inventory
+  --force-handlers      run handlers even if a task fails
+  --list-hosts          outputs a list of matching hosts; does not execute
+                        anything else
+  --list-tags           list all available tags
+  --list-tasks          list all tasks that would be executed
+  --skip-tags SKIP_TAGS
+                        only run plays and tasks whose tags do not match these
+                        values
+  --start-at-task START_AT_TASK
+                        start the playbook at the task matching this name
+  --step                one-step-at-a-time: confirm each task before running
+  --syntax-check        perform a syntax check on the playbook, but do not
+                        execute it
+  --vault-id VAULT_IDS  the vault identity to use
+  --vault-password-file VAULT_PASSWORD_FILES, --vault-pass-file VAULT_PASSWORD_FILES
+                        vault password file
+  --version             show program's version number, config file location,
+                        configured module search path, module location,
+                        executable location and exit
+  -C, --check           don't make any changes; instead, try to predict some
+                        of the changes that may occur
+  -D, --diff            when changing (small) files and templates, show the
+                        differences in those files; works great with --check
+  -M MODULE_PATH, --module-path MODULE_PATH
+                        prepend colon-separated path(s) to module library (def
+                        ault=~/.ansible/plugins/modules:/usr/share/ansible/plu
+                        gins/modules)
+  -e EXTRA_VARS, --extra-vars EXTRA_VARS
+                        set additional variables as key=value or YAML/JSON, if
+                        filename prepend with @
+  -f FORKS, --forks FORKS
+                        specify number of parallel processes to use
+                        (default=5)
+  -h, --help            show this help message and exit
+  -i INVENTORY, --inventory INVENTORY, --inventory-file INVENTORY
+                        specify inventory host path or comma separated host
+                        list. --inventory-file is deprecated
+  -l SUBSET, --limit SUBSET
+                        further limit selected hosts to an additional pattern
+  -t TAGS, --tags TAGS  only run plays and tasks tagged with these values
+  -v, --verbose         verbose mode (-vvv for more, -vvvv to enable
+                        connection debugging)
+Connection Options:
+  control as whom and how to connect to hosts
+  --private-key PRIVATE_KEY_FILE, --key-file PRIVATE_KEY_FILE
+                        use this file to authenticate the connection
+  --scp-extra-args SCP_EXTRA_ARGS
+                        specify extra arguments to pass to scp only (e.g. -l)
+  --sftp-extra-args SFTP_EXTRA_ARGS
+                        specify extra arguments to pass to sftp only (e.g. -f,
+                        -l)
+  --ssh-common-args SSH_COMMON_ARGS
+                        specify common arguments to pass to sftp/scp/ssh (e.g.
+                        ProxyCommand)
+  --ssh-extra-args SSH_EXTRA_ARGS
+                        specify extra arguments to pass to ssh only (e.g. -R)
+  -T TIMEOUT, --timeout TIMEOUT
+                        override the connection timeout in seconds
+                        (default=10)
+  -c CONNECTION, --connection CONNECTION
+                        connection type to use (default=smart)
+  -k, --ask-pass        ask for connection password
+  -u REMOTE_USER, --user REMOTE_USER
+                        connect as this user (default=devops)
+Privilege Escalation Options:
+  control how and which user you become as on target hosts
+  --become-method BECOME_METHOD
+                        privilege escalation method to use (default=sudo), use
+                        `ansible-doc -t become -l` to list valid choices.
+  --become-user BECOME_USER
+                        run operations as this user (default=root)
+  -K, --ask-become-pass
+                        ask for privilege escalation password
+  -b, --become          run operations with become (does not imply password
+                        prompting)
+[student@workstation task-tagging]$ ansible-navigator run -m stdout site.yml -i inventory.yml --tags tests
+
+PLAY [Ensure HAProxy is deployed] **********************************************
+
+PLAY [Ensure Apache is deployed] ***********************************************
+
+PLAY [Ensure Web App is deployed] **********************************************
+
+PLAY [Web application smoke test] **********************************************
+
+TASK [Verify content of http://localhost] **************************************
+fatal: [serverb.lab.example.com]: FAILED! => {"ansible_facts": {"discovered_interpreter_python": "/usr/libexec/platform-python"}, "changed": false, "content": "", "elapsed": 0, "failed_when_result": true, "msg": "Status code was -1 and not [200]: Request failed: <urlopen error [Errno 111] Connection refused>", "redirected": false, "status": -1, "url": "http://localhost"}
+fatal: [serverc.lab.example.com]: FAILED! => {"ansible_facts": {"discovered_interpreter_python": "/usr/libexec/platform-python"}, "changed": false, "content": "", "elapsed": 0, "failed_when_result": true, "msg": "Status code was -1 and not [200]: Request failed: <urlopen error [Errno 111] Connection refused>", "redirected": false, "status": -1, "url": "http://localhost"}
+
+PLAY RECAP *********************************************************************
+serverb.lab.example.com    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+
+[student@workstation task-tagging]$ ansible-navigator run -m stdout site.yml -i inventory.yml --skip-tags tests
+
+PLAY [Ensure HAProxy is deployed] **********************************************
+
+TASK [firewall : Ensure Firewall Source Configuration] *************************
+skipping: [servera.lab.example.com] => (item={'port': '80/tcp'}) 
+
+TASK [firewall : Ensure Firewall Service Configuration] ************************
+skipping: [servera.lab.example.com] => (item={'port': '80/tcp'}) 
+
+TASK [firewall : Ensure Firewall Port Configuration] ***************************
+changed: [servera.lab.example.com] => (item={'port': '80/tcp'})
+
+TASK [haproxy : Ensure haproxy packages are present] ***************************
+changed: [servera.lab.example.com]
+
+TASK [haproxy : Ensure haproxy is started and enabled] *************************
+changed: [servera.lab.example.com]
+
+TASK [haproxy : Ensure haproxy configuration is set] ***************************
+changed: [servera.lab.example.com]
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+changed: [servera.lab.example.com]
+
+RUNNING HANDLER [haproxy : reload haproxy] *************************************
+changed: [servera.lab.example.com]
+
+PLAY [Ensure Apache is deployed] ***********************************************
+
+TASK [firewall : Ensure Firewall Source Configuration] *************************
+skipping: [serverb.lab.example.com] => (item={'zone': 'internal', 'service': 'http'}) 
+skipping: [serverc.lab.example.com] => (item={'zone': 'internal', 'service': 'http'}) 
+changed: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+changed: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+
+TASK [firewall : Ensure Firewall Service Configuration] ************************
+changed: [serverb.lab.example.com] => (item={'zone': 'internal', 'service': 'http'})
+skipping: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+changed: [serverc.lab.example.com] => (item={'zone': 'internal', 'service': 'http'})
+skipping: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+
+TASK [firewall : Ensure Firewall Port Configuration] ***************************
+skipping: [serverc.lab.example.com] => (item={'zone': 'internal', 'service': 'http'}) 
+skipping: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+skipping: [serverb.lab.example.com] => (item={'zone': 'internal', 'service': 'http'}) 
+skipping: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+
+TASK [apache : Ensure httpd packages are installed] ****************************
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+TASK [apache : Ensure SELinux allows httpd connections to a remote database] ***
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+TASK [apache : Ensure httpd service is started and enabled] ********************
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+
+PLAY [Ensure Web App is deployed] **********************************************
+
+TASK [webapp : Ensure stub web content is deployed] ****************************
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+PLAY [Web application smoke test] **********************************************
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=6    changed=6    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=7    changed=7    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=7    changed=7    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+[student@workstation task-tagging]$ ansible-navigator run -m stdout site.yml -i inventory.yml --tags tests
+
+PLAY [Ensure HAProxy is deployed] **********************************************
+
+PLAY [Ensure Apache is deployed] ***********************************************
+
+PLAY [Ensure Web App is deployed] **********************************************
+
+PLAY [Web application smoke test] **********************************************
+
+TASK [Verify content of http://localhost] **************************************
+ok: [serverc.lab.example.com]
+ok: [serverb.lab.example.com]
+
+PLAY RECAP *********************************************************************
+serverb.lab.example.com    : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation task-tagging]$ cd
+[student@workstation ~]$ lab finish task-tagging 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up exercise .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

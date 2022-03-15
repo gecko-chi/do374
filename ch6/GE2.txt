@@ -1,0 +1,218 @@
+[student@workstation ~]$ lab start task-execution 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Ensuring required packages are available .......................................................................................................................... SUCCESS
+ · Installing required packages on workstation ....................................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+config-ansible    Desktop            Documents  inventory-dynamic    lab_do374       manage-review     Pictures        Templates
+config-navigator  develop-navigator  Downloads  inventory-variables  manage-finding  manage-selecting  Public          Videos
+config-review     develop-practices  git-repos  inventory-yaml       manage-reusing  Music             task-execution
+[student@workstation ~]$ cd task-execution/
+[student@workstation task-execution]$ ls
+ansible.cfg  ansible-navigator.yml  apache.yml  group_vars  handlers.yml  index.html  inventory  roles  site.yml
+[student@workstation task-execution]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation task-execution]$ cat inventory 
+[web_servers]
+serverf.lab.example.com
+
+[student@workstation task-execution]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation task-execution]$ cat handlers.yml 
+---
+- name: Implementing Handlers
+  hosts: web_servers
+  gather_facts: true
+
+  pre_tasks:
+    - name: Configuring Apache
+      include: apache.yml
+
+  roles:
+    - role: firewall
+
+- name: Cleaning Firewall rules
+  hosts: web_servers
+  gather_facts: false
+
+  tasks:
+    - name: Disabling firewall configuration
+      firewalld:
+        zone: "{{ item.zone if item.zone is defined else omit }}"
+        permanent: true
+        state: 'disabled'
+        port: "{{ item.port if item.port is defined else omit }}"
+      loop: "{{ firewall_rules }}"
+
+  post_tasks:
+    - name: Removing index.html file
+      file:
+        path: /var/www/html/index.html
+        state: absent
+[student@workstation task-execution]$ vim handlers.yml
+[student@workstation task-execution]$ cat handlers.yml
+---
+- name: Implementing Handlers
+  hosts: web_servers
+  gather_facts: true
+
+  pre_tasks:
+    - name: Configuring Apache
+      include: apache.yml
+
+    - name: Setting web port and zone for firewall
+      set_fact: 
+        web_port: 80/tcp
+        web_zone: public
+      register: port_and_zone
+      changed_when: true
+      notify: pre handler
+
+  roles:
+    - role: firewall
+
+  post_tasks:
+    - name: Ensure the web content is copied
+      copy:
+        src: index.html
+        dest: /var/www/html/
+      notify: post handler
+  
+  handlers:
+    - name: Showing the web port configured as pre_task
+      debug:
+        var: port_and_zone['ansible_facts']['web_port']
+      listen: pre handler
+
+    - name: Showing the web zone configured as pre_task
+      debug: 
+        var: port_and_zone['ansible_facts']['web_zone']
+      listen: pre handler
+
+    - name: post handler
+      uri:
+        url: http://serverf.lab.example.com
+        status_code: 200
+      become: false
+
+- name: Cleaning Firewall rules
+  hosts: web_servers
+  gather_facts: false
+
+  tasks:
+    - name: Disabling firewall configuration
+      firewalld:
+        zone: "{{ item.zone if item.zone is defined else omit }}"
+        permanent: true
+        state: 'disabled'
+        port: "{{ item.port if item.port is defined else omit }}"
+      loop: "{{ firewall_rules }}"
+      notify: restart firewalld 
+
+  post_tasks:
+    - name: Removing index.html file
+      file:
+        path: /var/www/html/index.html
+        state: absent
+      notify: post handler
+
+  handlers:
+    - name: restart firewalld
+      service:
+        name: firewalld
+        state: restarted
+
+    - name: post handler
+      debug:
+        msg: The index.html file was deleted
+
+[student@workstation task-execution]$ ansible-navigator run -m stdout handlers.yml 
+
+PLAY [Implementing Handlers] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverf.lab.example.com]
+
+TASK [Installing apache] *******************************************************
+changed: [serverf.lab.example.com]
+
+TASK [Starting apache] *********************************************************
+changed: [serverf.lab.example.com]
+
+TASK [Setting web port and zone for firewall] **********************************
+changed: [serverf.lab.example.com]
+
+RUNNING HANDLER [Showing the web port configured as pre_task] ******************
+ok: [serverf.lab.example.com] => {
+    "port_and_zone['ansible_facts']['web_port']": "80/tcp"
+}
+
+RUNNING HANDLER [Showing the web zone configured as pre_task] ******************
+ok: [serverf.lab.example.com] => {
+    "port_and_zone['ansible_facts']['web_zone']": "public"
+}
+
+TASK [firewall : Ensure Firewall Port Configuration] ***************************
+changed: [serverf.lab.example.com] => (item={'port': '80/tcp', 'zone': 'public'})
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+changed: [serverf.lab.example.com]
+
+TASK [Ensure the web content is copied] ****************************************
+changed: [serverf.lab.example.com]
+
+RUNNING HANDLER [post handler] *************************************************
+ok: [serverf.lab.example.com]
+
+PLAY [Cleaning Firewall rules] *************************************************
+
+TASK [Disabling firewall configuration] ****************************************
+changed: [serverf.lab.example.com] => (item={'port': '80/tcp', 'zone': 'public'})
+
+RUNNING HANDLER [restart firewalld] ********************************************
+changed: [serverf.lab.example.com]
+
+TASK [Removing index.html file] ************************************************
+changed: [serverf.lab.example.com]
+
+RUNNING HANDLER [post handler] *************************************************
+ok: [serverf.lab.example.com] => {
+    "msg": "The index.html file was deleted"
+}
+
+PLAY RECAP *********************************************************************
+serverf.lab.example.com    : ok=14   changed=9    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation task-execution]$ cd
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+[student@workstation ~]$ lab finish task-execution 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up exercise .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+
