@@ -1,0 +1,279 @@
+[student@workstation ~]$ lab start  inventory-variables 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Starting the exercise ............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ ls
+config-ansible    config-review  develop-navigator  Documents  git-repos          inventory-variables  lab_do374       manage-reusing  manage-selecting  Pictures  Templates
+config-navigator  Desktop        develop-practices  Downloads  inventory-dynamic  inventory-yaml       manage-finding  manage-review   Music             Public    Videos
+[student@workstation ~]$ cd inventory-variables/
+[student@workstation inventory-variables]$ ls
+ansible.cfg  ansible-navigator.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  inventory.yml  roles  site.yml
+[student@workstation inventory-variables]$ cat inventory.yml 
+lb_servers:
+  hosts:
+    servera.lab.example.com:
+
+web_servers:
+  hosts:
+    server[b:c].lab.example.com:
+[student@workstation inventory-variables]$ cat deploy_haproxy.yml 
+---
+- name: Ensuring HAProxy is deployed
+  hosts: lb_servers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ensure HAProxy is installed and configured
+      include_role:
+        name: haproxy
+      vars:
+        haproxy_appservers:
+          - name: serverb.lab.example.com
+            ip: 172.25.250.11
+            port: 80
+          - name: serverc.lab.example.com
+            ip: 172.25.250.12
+            port: 80
+
+    - name: Ensure the firewall ports are opened
+      include_role:
+        name: firewall
+      vars:
+        firewall_rules:
+          - port: 80/tcp
+[student@workstation inventory-variables]$ mkdir -p group_vars/lb_servers
+[student@workstation inventory-variables]$ vim group_vars/lb_servers/haproxy.yml
+[student@workstation inventory-variables]$ vim group_vars/lb_servers/haproxy.yml
+[student@workstation inventory-variables]$ cat group_vars/lb_servers/haproxy.yml
+---
+haproxy_appservers:
+  - name: serverb.lab.example.com
+    ip: 172.25.250.11
+    port: 80
+  - name: serverc.lab.example.com
+    ip: 172.25.250.12
+    port: 80
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ vim group_vars/lb_servers/firewall.yml
+[student@workstation inventory-variables]$ cat group_vars/lb_servers/firewall.yml
+---
+firewall_rules:
+  - port: 80/tcp
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ cat deploy_haproxy.yml 
+---
+- name: Ensuring HAProxy is deployed
+  hosts: lb_servers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ensure HAProxy is installed and configured
+      include_role:
+        name: haproxy
+      vars:
+        haproxy_appservers:
+          - name: serverb.lab.example.com
+            ip: 172.25.250.11
+            port: 80
+          - name: serverc.lab.example.com
+            ip: 172.25.250.12
+            port: 80
+
+    - name: Ensure the firewall ports are opened
+      include_role:
+        name: firewall
+      vars:
+        firewall_rules:
+          - port: 80/tcp
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ vim deploy_haproxy.yml
+[student@workstation inventory-variables]$ cat deploy_haproxy.yml
+---
+- name: Ensuring HAProxy is deployed
+  hosts: lb_servers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ensure HAProxy is installed and configured
+      include_role:
+        name: haproxy
+
+    - name: Ensure the firewall ports are opened
+      include_role:
+        name: firewall
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ cat deploy_apache.yml 
+---
+- name: Ensuring Apache HTTP Server is deployed
+  hosts: web_servers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ensure Apache HTTP Server is installed and started
+      include_role:
+        name: apache
+
+    - name: Ensure the firewall ports are opened
+      include_role:
+        name: firewall
+      vars:
+        firewall_rules:
+          # Allow HTTP requests from the load_balancer
+          - zone: internal
+            service: http
+          - zone: internal
+            source: "172.25.250.10"
+[student@workstation inventory-variables]$ mkdir -p group_vars/web_servers
+[student@workstation inventory-variables]$ vim group_vars/web_servers/firewall.yml
+[student@workstation inventory-variables]$ cat group_vars/web_servers/firewall.yml
+---
+firewall_rules:
+  # Allow HTTP requests from the load_balancer
+  - zone: internal
+    service: http
+  - zone: internal
+    source: "172.25.250.10"
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ vim deploy_apache.yml 
+[student@workstation inventory-variables]$ cat deploy_apache.yml
+---
+- name: Ensuring Apache HTTP Server is deployed
+  hosts: web_servers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ensure Apache HTTP Server is installed and started
+      include_role:
+        name: apache
+
+    - name: Ensure the firewall ports are opened
+      include_role:
+        name: firewall
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ cat inventory.yml 
+lb_servers:
+  hosts:
+    servera.lab.example.com:
+
+web_servers:
+  hosts:
+    server[b:c].lab.example.com:
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ vim inventory.yml
+[student@workstation inventory-variables]$ cat inventory.yml
+lb_servers:
+  hosts:
+    load_balancer: 
+      ansible_host: servera.lab.example.com
+
+web_servers:
+  hosts:
+    server[b:c].lab.example.com:
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ ansible-navigator run -m stdout site.yml 
+
+PLAY [Ensuring HAProxy is deployed] ********************************************
+
+TASK [Ensure HAProxy is installed and configured] ******************************
+
+TASK [haproxy : Ensure the HAProxy packages are installed] *********************
+changed: [load_balancer]
+
+TASK [haproxy : Ensure HAProxy is started and enabled] *************************
+changed: [load_balancer]
+
+TASK [haproxy : Ensure HAProxy configuration is set] ***************************
+changed: [load_balancer]
+
+TASK [Ensure the firewall ports are opened] ************************************
+
+TASK [firewall : Ensure the firewalld package is installed] ********************
+ok: [load_balancer]
+
+TASK [firewall : Ensure the firewall is configured] ****************************
+changed: [load_balancer] => (item={'port': '80/tcp'})
+
+RUNNING HANDLER [haproxy : reload haproxy] *************************************
+changed: [load_balancer]
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+changed: [load_balancer]
+
+PLAY [Ensuring Apache HTTP Server is deployed] *********************************
+
+TASK [Ensure Apache HTTP Server is installed and started] **********************
+
+TASK [apache : Ensure the packages are installed] ******************************
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+TASK [apache : Ensure the httpd service is started] ****************************
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+TASK [Ensure the firewall ports are opened] ************************************
+
+TASK [firewall : Ensure the firewalld package is installed] ********************
+ok: [serverb.lab.example.com]
+ok: [serverc.lab.example.com]
+
+TASK [firewall : Ensure the firewall is configured] ****************************
+changed: [serverb.lab.example.com] => (item={'zone': 'internal', 'service': 'http'})
+changed: [serverc.lab.example.com] => (item={'zone': 'internal', 'service': 'http'})
+changed: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+changed: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+PLAY [Ensuring web content is deployed] ****************************************
+
+TASK [Ensure web content is deployed] ******************************************
+
+TASK [webapp : Ensuring the content is deployed] *******************************
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+PLAY RECAP *********************************************************************
+load_balancer              : ok=7    changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=6    changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=6    changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation inventory-variables]$ curl http://servera.lab.example.com 
+This is serverb.lab.example.com. (version v1.0)
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ curl http://servera.lab.example.com 
+This is serverc.lab.example.com. (version v1.0)
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ 
+[student@workstation inventory-variables]$ cd
+[student@workstation ~]$ lab finish inventory-variables 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up the exercise .......................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

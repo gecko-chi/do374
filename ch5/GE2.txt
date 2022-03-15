@@ -1,0 +1,125 @@
+[student@workstation ~]$ lab start inventory-yaml 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Starting the exercise ............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ ls
+config-ansible    config-review  develop-navigator  Documents  git-repos          inventory-yaml  manage-finding  manage-review     Music     Public     Videos
+config-navigator  Desktop        develop-practices  Downloads  inventory-dynamic  lab_do374       manage-reusing  manage-selecting  Pictures  Templates
+[student@workstation ~]$ 
+[student@workstation ~]$ cd inventory-yaml/
+[student@workstation inventory-yaml]$ ls
+ansible.cfg  ansible-navigator.yml  inventory  solution  test-ping-all-servers.yml
+[student@workstation inventory-yaml]$ cat inventory 
+[active_web_servers]
+server[b:c].lab.example.com
+
+[inactive_web_servers]
+server[d:f].lab.example.com
+
+[web_servers:children]
+active_web_servers
+inactive_web_servers
+
+[all_servers]
+servera.lab.example.com
+
+[all_servers:children]
+web_servers
+[student@workstation inventory-yaml]$ cp inventory inventory.yml
+[student@workstation inventory-yaml]$ vim inventory.yml
+[student@workstation inventory-yaml]$ cat inventory.yml
+active_web_servers:
+  hosts:
+    server[b:c].lab.example.com
+
+inactive_web_servers:
+  hosts:
+    server[d:f].lab.example.com
+
+web_servers:
+  children:
+    active_web_servers:
+    inactive_web_servers:
+
+all_servers:
+  hosts:
+    servera.lab.example.com
+  children:
+    web_servers
+[student@workstation inventory-yaml]$ 
+[student@workstation inventory-yaml]$ 
+[student@workstation inventory-yaml]$ 
+[student@workstation inventory-yaml]$ vim inventory.yml
+[student@workstation inventory-yaml]$ cat inventory.yml
+active_web_servers:
+  hosts:
+    server[b:c].lab.example.com:
+
+inactive_web_servers:
+  hosts:
+    server[d:f].lab.example.com:
+
+web_servers:
+  children:
+    active_web_servers:
+    inactive_web_servers:
+
+all_servers:
+  hosts:
+    servera.lab.example.com:
+  children:
+    web_servers:
+[student@workstation inventory-yaml]$ 
+[student@workstation inventory-yaml]$ 
+[student@workstation inventory-yaml]$ cat test-ping-all-servers.yml 
+---
+- name: Pinging all servers
+  hosts: all_servers
+  become: false
+  gather_facts: false
+
+  tasks:
+    - name: Ensure the hosts are reachable
+      ping:
+...
+[student@workstation inventory-yaml]$ 
+[student@workstation inventory-yaml]$ 
+[student@workstation inventory-yaml]$ ansible-navigator run -i inventory.yml -m stdout test-ping-all-servers.yml 
+
+PLAY [Pinging all servers] *****************************************************
+
+TASK [Ensure the hosts are reachable] ******************************************
+ok: [serverb.lab.example.com]
+ok: [servera.lab.example.com]
+ok: [serverc.lab.example.com]
+ok: [serverd.lab.example.com]
+ok: [servere.lab.example.com]
+ok: [serverf.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd.lab.example.com    : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+servere.lab.example.com    : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverf.lab.example.com    : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation inventory-yaml]$ ls
+ansible.cfg  ansible-navigator.yml  inventory  inventory.yml  solution  test-ping-all-servers-artifact-2022-03-15T08:37:04.625611+00:00.json  test-ping-all-servers.yml
+[student@workstation inventory-yaml]$ cd
+[student@workstation ~]$ lab finish inventory-yaml 
+
+Finishing lab.
+
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+
