@@ -1,0 +1,217 @@
+[student@workstation ~]$ lab start config-review 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Installing required packages on workstation ....................................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+config-ansible    config-review  develop-navigator  Documents  git-repos  manage-finding  manage-review     Music     Public     Videos
+config-navigator  Desktop        develop-practices  Downloads  lab_do374  manage-reusing  manage-selecting  Pictures  Templates
+[student@workstation ~]$ cd config-review/
+[student@workstation config-review]$ ls
+ansible.cfg  ansible-navigator.yml  inventory
+[student@workstation config-review]$ cat ansible.cfg 
+[defaults]
+inventory = inventory[student@workstation config-review]$ 
+[student@workstation config-review]$ 
+[student@workstation config-review]$ cat inventory 
+[workstation]
+workstation.lab.example.com
+[student@workstation config-review]$ 
+[student@workstation config-review]$ 
+[student@workstation config-review]$ grep -v ^# ansible-navigator.yml 
+---
+ansible-navigator:
+  execution-environment:
+    enabled: true
+    image: hub.lab.example.com/ee-supported-rhel8:2.0
+  logging:
+    level: critical
+[student@workstation config-review]$ vim ansible-navigator.yml
+[student@workstation config-review]$ grep -v ^# ansible-navigator.yml 
+---
+ansible-navigator:
+  execution-environment:
+    enabled: true
+    image: hub.lab.example.com/ee-supported-rhel8:2.0
+  logging:
+    level: critical
+  mode: stdout
+[student@workstation config-review]$ 
+[student@workstation config-review]$ ansible-navigator 
+[ERROR]: Command provided: ''
+[ERROR]: Subcommand 'welcome' does not support mode 'stdout'. Supported modes: 'interactive'.
+ [HINT]: Try again with '-m interactive'
+[ERROR]: Configuration failed, using default log file location: /home/student/config-review/ansible-navigator.log. Log level set to debug
+ [HINT]: Review the hints and log file to see what went wrong: /home/student/config-review/ansible-navigator.log
+[student@workstation config-review]$ ansible-navigator -m interactive
+[student@workstation config-review]$ vim ansible.cfg 
+[student@workstation config-review]$ cat ansible
+cat: ansible: No such file or directory
+[student@workstation config-review]$ 
+[student@workstation config-review]$ 
+[student@workstation config-review]$ cat ansible.cfg 
+[defaults]
+inventory = inventory
+[student@workstation config-review]$ 
+[student@workstation config-review]$ 
+[student@workstation config-review]$ vim ansible.cfg
+[student@workstation config-review]$ cat ansible.cfg
+[defaults]
+inventory = inventory
+forks = 15 
+
+[privilege_escalation]
+become_method = sudo 
+become_user = root
+become_ask_pass = false
+[student@workstation config-review]$ 
+[student@workstation config-review]$ 
+[student@workstation config-review]$ ansible-navigator config dump 
+ACTION_WARNINGS(default) = True
+AGNOSTIC_BECOME_PROMPT(default) = True
+ALLOW_WORLD_READABLE_TMPFILES(default) = False
+ANSIBLE_CONNECTION_PATH(default) = None
+ANSIBLE_COW_ACCEPTLIST(default) = ['bud-frogs', 'bunny', 'cheese', 'daemon', 'default', 'dragon', 'elephant-in-snake', 'elephant', 'eyes', 'hellokitty', 'kitty', 'luke-koala',>
+ANSIBLE_COW_PATH(default) = None
+ANSIBLE_COW_SELECTION(default) = default
+ANSIBLE_FORCE_COLOR(default) = False
+ANSIBLE_NOCOLOR(default) = False
+ANSIBLE_NOCOWS(default) = False
+ANSIBLE_PIPELINING(default) = False
+ANY_ERRORS_FATAL(default) = False
+BECOME_ALLOW_SAME_USER(default) = False
+BECOME_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/become', '/usr/share/ansible/plugins/become']
+CACHE_PLUGIN(env: ANSIBLE_CACHE_PLUGIN) = jsonfile
+CACHE_PLUGIN_CONNECTION(env: ANSIBLE_CACHE_PLUGIN_CONNECTION) = /runner/artifacts/4073867c-99c6-459d-9626-7d90aff697f9/fact_cache
+CACHE_PLUGIN_PREFIX(default) = ansible_facts
+CACHE_PLUGIN_TIMEOUT(default) = 86400
+CALLABLE_ACCEPT_LIST(default) = []
+CALLBACKS_ENABLED(default) = []
+COLLECTIONS_ON_ANSIBLE_VERSION_MISMATCH(default) = warning
+COLLECTIONS_PATHS(default) = ['/home/runner/.ansible/collections', '/usr/share/ansible/collections']
+COLLECTIONS_SCAN_SYS_PATH(default) = True
+COLOR_CHANGED(default) = yellow
+COLOR_CONSOLE_PROMPT(default) = white
+COLOR_DEBUG(default) = dark gray
+COLOR_DEPRECATE(default) = purple
+COLOR_DIFF_ADD(default) = green
+COLOR_DIFF_LINES(default) = cyan
+COLOR_DIFF_REMOVE(default) = red
+COLOR_ERROR(default) = red
+COLOR_HIGHLIGHT(default) = white
+COLOR_OK(default) = green
+COLOR_SKIP(default) = cyan
+COLOR_UNREACHABLE(default) = bright red
+COLOR_VERBOSE(default) = blue
+COLOR_WARN(default) = bright purple
+COMMAND_WARNINGS(default) = False
+CONDITIONAL_BARE_VARS(default) = False
+CONNECTION_FACTS_MODULES(default) = {'asa': 'ansible.legacy.asa_facts', 'cisco.asa.asa': 'cisco.asa.asa_facts', 'eos': 'ansible.legacy.eos_facts', 'arista.eos.eos': 'arista.eo>
+CONTROLLER_PYTHON_WARNING(default) = True
+COVERAGE_REMOTE_OUTPUT(default) = None
+COVERAGE_REMOTE_PATHS(default) = *
+DEFAULT_ACTION_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/action', '/usr/share/ansible/plugins/action']
+DEFAULT_ALLOW_UNSAFE_LOOKUPS(default) = False
+DEFAULT_ASK_PASS(default) = False
+DEFAULT_ASK_VAULT_PASS(default) = False
+DEFAULT_BECOME(default) = False
+DEFAULT_BECOME_ASK_PASS(/home/student/config-review/ansible.cfg) = False
+DEFAULT_BECOME_EXE(default) = None
+DEFAULT_BECOME_FLAGS(default) = 
+DEFAULT_BECOME_METHOD(/home/student/config-review/ansible.cfg) = sudo
+DEFAULT_BECOME_USER(/home/student/config-review/ansible.cfg) = root
+DEFAULT_CACHE_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/cache', '/usr/share/ansible/plugins/cache']
+DEFAULT_CALLBACK_PLUGIN_PATH(env: ANSIBLE_CALLBACK_PLUGINS) = ['/usr/lib/python3.8/site-packages/ansible_runner/callbacks']
+DEFAULT_CLICONF_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/cliconf', '/usr/share/ansible/plugins/cliconf']
+DEFAULT_CONNECTION_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/connection', '/usr/share/ansible/plugins/connection']
+DEFAULT_DEBUG(default) = False
+DEFAULT_EXECUTABLE(default) = /bin/sh
+DEFAULT_FACT_PATH(default) = None
+DEFAULT_FILTER_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/filter', '/usr/share/ansible/plugins/filter']
+DEFAULT_FORCE_HANDLERS(default) = False
+DEFAULT_FORKS(/home/student/config-review/ansible.cfg) = 15
+DEFAULT_GATHERING(default) = implicit
+DEFAULT_GATHER_SUBSET(default) = ['all']
+DEFAULT_GATHER_TIMEOUT(default) = 10
+DEFAULT_HANDLER_INCLUDES_STATIC(default) = False
+DEFAULT_HASH_BEHAVIOUR(default) = replace
+DEFAULT_HOST_LIST(/home/student/config-review/ansible.cfg) = ['/home/student/config-review/inventory']
+DEFAULT_HTTPAPI_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/httpapi', '/usr/share/ansible/plugins/httpapi']
+DEFAULT_INTERNAL_POLL_INTERVAL(default) = 0.001
+DEFAULT_INVENTORY_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/inventory', '/usr/share/ansible/plugins/inventory']
+DEFAULT_JINJA2_EXTENSIONS(default) = []
+DEFAULT_JINJA2_NATIVE(default) = False
+DEFAULT_KEEP_REMOTE_FILES(default) = False
+DEFAULT_LIBVIRT_LXC_NOSECLABEL(default) = False
+DEFAULT_LOAD_CALLBACK_PLUGINS(default) = False
+DEFAULT_LOCAL_TMP(default) = /home/runner/.ansible/tmp/ansible-local-25fw7774mj
+DEFAULT_LOG_FILTER(default) = []
+DEFAULT_LOG_PATH(default) = None
+DEFAULT_LOOKUP_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/lookup', '/usr/share/ansible/plugins/lookup']
+DEFAULT_MANAGED_STR(default) = Ansible managed
+DEFAULT_MODULE_ARGS(default) = 
+DEFAULT_MODULE_COMPRESSION(default) = ZIP_DEFLATED
+DEFAULT_MODULE_NAME(default) = command
+DEFAULT_MODULE_PATH(default) = ['/home/runner/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+DEFAULT_MODULE_UTILS_PATH(default) = ['/home/runner/.ansible/plugins/module_utils', '/usr/share/ansible/plugins/module_utils']
+DEFAULT_NETCONF_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/netconf', '/usr/share/ansible/plugins/netconf']
+DEFAULT_NO_LOG(default) = False
+DEFAULT_NO_TARGET_SYSLOG(default) = False
+DEFAULT_NULL_REPRESENTATION(default) = None
+DEFAULT_POLL_INTERVAL(default) = 15
+DEFAULT_PRIVATE_KEY_FILE(default) = None
+DEFAULT_PRIVATE_ROLE_VARS(default) = False
+DEFAULT_REMOTE_PORT(default) = None
+DEFAULT_REMOTE_USER(default) = None
+DEFAULT_ROLES_PATH(default) = ['/home/runner/.ansible/roles', '/usr/share/ansible/roles', '/etc/ansible/roles']
+DEFAULT_SELINUX_SPECIAL_FS(default) = ['fuse', 'nfs', 'vboxsf', 'ramfs', '9p', 'vfat']
+DEFAULT_STDOUT_CALLBACK(env: ANSIBLE_STDOUT_CALLBACK) = awx_display
+DEFAULT_STRATEGY(default) = linear
+DEFAULT_STRATEGY_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/strategy', '/usr/share/ansible/plugins/strategy']
+DEFAULT_SU(default) = False
+DEFAULT_SYSLOG_FACILITY(default) = LOG_USER
+DEFAULT_TASK_INCLUDES_STATIC(default) = False
+DEFAULT_TERMINAL_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/terminal', '/usr/share/ansible/plugins/terminal']
+DEFAULT_TEST_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/test', '/usr/share/ansible/plugins/test']
+DEFAULT_TIMEOUT(default) = 10
+DEFAULT_TRANSPORT(default) = smart
+DEFAULT_UNDEFINED_VAR_BEHAVIOR(default) = True
+DEFAULT_VARS_PLUGIN_PATH(default) = ['/home/runner/.ansible/plugins/vars', '/usr/share/ansible/plugins/vars']
+DEFAULT_VAULT_ENCRYPT_IDENTITY(default) = None
+DEFAULT_VAULT_IDENTITY(default) = default
+DEFAULT_VAULT_IDENTITY_LIST(default) = []
+DEFAULT_VAULT_ID_MATCH(default) = False
+DEFAULT_VAULT_PASSWORD_FILE(default) = None
+DEFAULT_VERBOSITY(default) = 0
+DEPRECATION_WARNINGS(default) = True
+DEVEL_WARNING(default) = True
+DIFF_ALWAYS(default) = False
+DIFF_CONTEXT(default) = 3
+DISPLAY_ARGS_TO_STDOUT(default) = False
+DISPLAY_SKIPPED_HOSTS(default) = True
+DOCSITE_ROOT_URL(default) = https://docs.ansible.com/ansible-core/
+[student@workstation config-review]$ ansible-navigator config -m interactive
+[student@workstation config-review]$ cd
+[student@workstation ~]$ lab grade config-review 
+
+Grading lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · The ansible-navigator.yml file is correctly configured ............................................................................................................ PASS
+ · The ansible.cfg file is correctly configured ...................................................................................................................... PASS
+
+Overall lab grade: PASS
+
+[student@workstation ~]$ lab finish config-review
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

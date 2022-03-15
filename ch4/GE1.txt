@@ -1,0 +1,232 @@
+[student@workstation ~]$ lab start config-ansible 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Installing required packages on workstation ....................................................................................................................... SUCCESS
+
+[student@workstation ~]$ ansible-navigator config --eei hub.lab.example.com/ee-supported-rhel8
+--------------------------------------------------------------------------------
+Execution environment image and pull policy overview
+--------------------------------------------------------------------------------
+Execution environment image name:  hub.lab.example.com/ee-supported-rhel8:latest
+Execution environment image tag:   latest
+Execution environment pull policy: tag
+Execution environment pull needed: True
+--------------------------------------------------------------------------------
+Updating the execution environment
+--------------------------------------------------------------------------------
+Trying to pull hub.lab.example.com/ee-supported-rhel8:latest...
+Getting image source signatures
+Copying blob d322672cc56a skipped: already exists  
+Copying blob 80be453030cf skipped: already exists  
+Copying blob 00fe5380b165 skipped: already exists  
+Copying blob 69ebc448681d [--------------------------------------] 0.0b / 0.0b
+Copying blob 5c4402ce71c4 [--------------------------------------] 0.0b / 0.0b
+Copying config 00aa4b51e9 done  
+Writing manifest to image destination
+Storing signatures
+00aa4b51e90f57d6fe20d7b1a6d36b9122b3dce0b6124aea58b931fda4fdab23
+[student@workstation ~]$ ls
+ansible-navigator.log  Desktop            develop-practices  Downloads  lab_do374       manage-reusing  manage-selecting  Pictures  Templates
+config-ansible         develop-navigator  Documents          git-repos  manage-finding  manage-review   Music             Public    Videos
+[student@workstation ~]$ cd config-ansible/
+[student@workstation config-ansible]$ ls
+ansible.cfg  inventory
+[student@workstation config-ansible]$ cat inventory 
+[workstation]
+workstation.lab.example.com
+
+[servera]
+servera.lab.example.com
+
+[web:children]
+servera
+
+[student@workstation config-ansible]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+
+[student@workstation config-ansible]$ ansible-navigator config --eei hub.lab.example.com/ee-supported-rhel8
+--------------------------------------------------------------------------------
+Execution environment image and pull policy overview
+--------------------------------------------------------------------------------
+Execution environment image name:  hub.lab.example.com/ee-supported-rhel8:latest
+Execution environment image tag:   latest
+Execution environment pull policy: tag
+Execution environment pull needed: True
+--------------------------------------------------------------------------------
+Updating the execution environment
+--------------------------------------------------------------------------------
+Trying to pull hub.lab.example.com/ee-supported-rhel8:latest...
+Getting image source signatures
+Copying blob 80be453030cf skipped: already exists  
+Copying blob 69ebc448681d skipped: already exists  
+Copying blob 5c4402ce71c4 skipped: already exists  
+Copying blob d322672cc56a skipped: already exists  
+Copying blob 00fe5380b165 [--------------------------------------] 0.0b / 0.0b
+Copying config 00aa4b51e9 done  
+Writing manifest to image destination
+Storing signatures
+00aa4b51e90f57d6fe20d7b1a6d36b9122b3dce0b6124aea58b931fda4fdab23
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ ansible-navigator config --eei hub.lab.example.com/ee-supported-rhel8
+--------------------------------------------------------------------------------
+Execution environment image and pull policy overview
+--------------------------------------------------------------------------------
+Execution environment image name:  hub.lab.example.com/ee-supported-rhel8:latest
+Execution environment image tag:   latest
+Execution environment pull policy: tag
+Execution environment pull needed: True
+--------------------------------------------------------------------------------
+Updating the execution environment
+--------------------------------------------------------------------------------
+Trying to pull hub.lab.example.com/ee-supported-rhel8:latest...
+Getting image source signatures
+Copying blob 00fe5380b165 skipped: already exists  
+Copying blob d322672cc56a skipped: already exists  
+Copying blob 80be453030cf skipped: already exists  
+Copying blob 69ebc448681d skipped: already exists  
+Copying blob 5c4402ce71c4 [--------------------------------------] 0.0b / 0.0b
+Copying config 00aa4b51e9 done  
+Writing manifest to image destination
+Storing signatures
+00aa4b51e90f57d6fe20d7b1a6d36b9122b3dce0b6124aea58b931fda4fdab23
+[student@workstation config-ansible]$ cat ansible
+cat: ansible: No such file or directory
+[student@workstation config-ansible]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+
+[student@workstation config-ansible]$ vim ansible.cfg
+[student@workstation config-ansible]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+ask_pass=false
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ ansible-navigator config --eei hub.lab.example.com/ee-supported-rhel8
+--------------------------------------------------------------------------------
+Execution environment image and pull policy overview
+--------------------------------------------------------------------------------
+Execution environment image name:  hub.lab.example.com/ee-supported-rhel8:latest
+Execution environment image tag:   latest
+Execution environment pull policy: tag
+Execution environment pull needed: True
+--------------------------------------------------------------------------------
+Updating the execution environment
+--------------------------------------------------------------------------------
+Trying to pull hub.lab.example.com/ee-supported-rhel8:latest...
+Getting image source signatures
+Copying blob d322672cc56a skipped: already exists  
+Copying blob 80be453030cf skipped: already exists  
+Copying blob 69ebc448681d skipped: already exists  
+Copying blob 00fe5380b165 [--------------------------------------] 0.0b / 0.0b
+Copying blob 5c4402ce71c4 [--------------------------------------] 0.0b / 0.0b
+Copying config 00aa4b51e9 done  
+Writing manifest to image destination
+Storing signatures
+00aa4b51e90f57d6fe20d7b1a6d36b9122b3dce0b6124aea58b931fda4fdab23
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ cat ansible
+cat: ansible: No such file or directory
+[student@workstation config-ansible]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+ask_pass=false
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ vim ansible.cfg
+[student@workstation config-ansible]$ cat ansible.cfg
+[defaults]
+inventory=inventory
+remote_user=devops
+ask_pass=true
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ 
+[student@workstation config-ansible]$ ansible-navigator config --eei hub.lab.example.com/ee-supported-rhel8
+--------------------------------------------------------------------------------
+Execution environment image and pull policy overview
+--------------------------------------------------------------------------------
+Execution environment image name:  hub.lab.example.com/ee-supported-rhel8:latest
+Execution environment image tag:   latest
+Execution environment pull policy: tag
+Execution environment pull needed: True
+--------------------------------------------------------------------------------
+Updating the execution environment
+--------------------------------------------------------------------------------
+Trying to pull hub.lab.example.com/ee-supported-rhel8:latest...
+Getting image source signatures
+Copying blob d322672cc56a skipped: already exists  
+Copying blob 00fe5380b165 skipped: already exists  
+Copying blob 80be453030cf [--------------------------------------] 0.0b / 0.0b
+Copying blob 69ebc448681d [--------------------------------------] 0.0b / 0.0b
+Copying blob 5c4402ce71c4 [--------------------------------------] 0.0b / 0.0b
+Copying config 00aa4b51e9 done  
+Writing manifest to image destination
+Storing signatures
+00aa4b51e90f57d6fe20d7b1a6d36b9122b3dce0b6124aea58b931fda4fdab23
+[student@workstation config-ansible]$ ansible-navigator config --eei hub.lab.example.com/ee-supported-rhel8
+--------------------------------------------------------------------------------
+Execution environment image and pull policy overview
+--------------------------------------------------------------------------------
+Execution environment image name:  hub.lab.example.com/ee-supported-rhel8:latest
+Execution environment image tag:   latest
+Execution environment pull policy: tag
+Execution environment pull needed: True
+--------------------------------------------------------------------------------
+Updating the execution environment
+--------------------------------------------------------------------------------
+Trying to pull hub.lab.example.com/ee-supported-rhel8:latest...
+Getting image source signatures
+Copying blob d322672cc56a skipped: already exists  
+Copying blob 69ebc448681d skipped: already exists  
+Copying blob 80be453030cf skipped: already exists  
+Copying blob 5c4402ce71c4 skipped: already exists  
+Copying blob 00fe5380b165 [--------------------------------------] 0.0b / 0.0b
+Copying config 00aa4b51e9 done  
+Writing manifest to image destination
+Storing signatures
+00aa4b51e90f57d6fe20d7b1a6d36b9122b3dce0b6124aea58b931fda4fdab23
+[student@workstation config-ansible]$ ansible-navigator config --eei hub.lab.example.com/ee-supported-rhel8
+--------------------------------------------------------------------------------
+Execution environment image and pull policy overview
+--------------------------------------------------------------------------------
+Execution environment image name:  hub.lab.example.com/ee-supported-rhel8:latest
+Execution environment image tag:   latest
+Execution environment pull policy: tag
+Execution environment pull needed: True
+--------------------------------------------------------------------------------
+Updating the execution environment
+--------------------------------------------------------------------------------
+Trying to pull hub.lab.example.com/ee-supported-rhel8:latest...
+Getting image source signatures
+Copying blob d322672cc56a skipped: already exists  
+Copying blob 69ebc448681d skipped: already exists  
+Copying blob 80be453030cf skipped: already exists  
+Copying blob 00fe5380b165 skipped: already exists  
+Copying blob 5c4402ce71c4 [--------------------------------------] 0.0b / 0.0b
+Copying config 00aa4b51e9 done  
+Writing manifest to image destination
+Storing signatures
+00aa4b51e90f57d6fe20d7b1a6d36b9122b3dce0b6124aea58b931fda4fdab23
+[student@workstation config-ansible]$ cd
+[student@workstation ~]$ lab finish  config-ansible
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up exercise .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

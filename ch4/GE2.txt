@@ -1,0 +1,443 @@
+[student@workstation ~]$ lab start config-navigator 
+
+Starting lab.
+
+ · Checking status for lab systems ............................................................................. SUCCESS
+ · Creating exercise working directory ......................................................................... SUCCESS
+ · Preparing local environment ................................................................................. SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .................................................... SUCCESS
+ · Installing required packages on workstation ................................................................. SUCCESS
+
+[student@workstation ~]$ ls
+config-ansible    develop-navigator  Downloads  manage-finding  manage-selecting  Public
+config-navigator  develop-practices  git-repos  manage-reusing  Music             Templates
+Desktop           Documents          lab_do374  manage-review   Pictures          Videos
+[student@workstation ~]$ cd config-navigator/
+[student@workstation config-navigator]$ ls
+ansible1.cfg  ansible2.cfg  ansible-navigator.yml  create_users.yml  inventory1  inventory2  secret-pass  secret.yml
+[student@workstation config-navigator]$ cat ansible1.cfg 
+[defaults]
+inventory = inventory1
+
+[privilege_escalation]
+become = true
+become_method = sudo
+become_user = root
+become_ask_pass = false
+
+[student@workstation config-navigator]$ cat inventory1
+[devservers]
+serverb.lab.example.com
+[student@workstation config-navigator]$ cat ansible2.cfg 
+[defaults]
+inventory = inventory2
+
+[privilege_escalation]
+become = true
+become_method = sudo
+become_user = root
+become_ask_pass = false
+
+[student@workstation config-navigator]$ cat inventory2
+[devservers]
+servera.lab.example.com
+[student@workstation config-navigator]$ cat create_users.yml 
+---
+- name: create user accounts in devservers
+  hosts: devservers
+  become: true
+  remote_user: devops
+  gather_facts: false
+  vars_files:
+    - secret.yml
+
+  tasks:
+    - name: Creating user from secret.yml
+      user:
+        name: "{{ username }}"
+        password: "{{ pwhash }}"
+
+[student@workstation config-navigator]$ ls
+ansible1.cfg  ansible2.cfg  ansible-navigator.yml  create_users.yml  inventory1  inventory2  secret-pass  secret.yml
+[student@workstation config-navigator]$ cat secret-pass 
+redhat
+
+[student@workstation config-navigator]$ ansible-vault view secret.yml 
+Vault password: 
+username: ansibleuser
+pwhash: $6$jfnHouVKUTFMM1pm$39OVTp0ZL8FX.QbD1GoUCP12pNrTC2XzX9Ec0UhzwAM76A.B.Yrk8S.8xiSSnAc.j1lqg4gIRpSPEw0YuuxhP1
+[student@workstation config-navigator]$ ansible-vault view secret.yml --vault-password-file=secret-pass
+username: ansibleuser
+pwhash: $6$jfnHouVKUTFMM1pm$39OVTp0ZL8FX.QbD1GoUCP12pNrTC2XzX9Ec0UhzwAM76A.B.Yrk8S.8xiSSnAc.j1lqg4gIRpSPEw0YuuxhP1
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ cat ansible1.cfg 
+[defaults]
+inventory = inventory1
+
+[privilege_escalation]
+become = true
+become_method = sudo
+become_user = root
+become_ask_pass = false
+
+[student@workstation config-navigator]$ vim ansible1.cfg
+[student@workstation config-navigator]$ cat ansible1.cfg
+[defaults]
+inventory = inventory1
+vault_password_file = secret-pass
+
+[privilege_escalation]
+become = true
+become_method = sudo
+become_user = root
+become_ask_pass = false
+
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ cat ansible2.cfg 
+[defaults]
+inventory = inventory2
+
+[privilege_escalation]
+become = true
+become_method = sudo
+become_user = root
+become_ask_pass = false
+
+[student@workstation config-navigator]$ vim ansible2.cfg
+[student@workstation config-navigator]$ cat ansible2.cfg 
+[defaults]
+inventory = inventory2
+vault_password_file = secret-pass
+
+[privilege_escalation]
+become = true
+become_method = sudo
+become_user = root
+become_ask_pass = false
+
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ ls
+ansible1.cfg  ansible2.cfg  ansible-navigator.yml  create_users.yml  inventory1  inventory2  secret-pass  secret.yml
+[student@workstation config-navigator]$ cat ansible-navigator.yml
+---
+ansible-navigator:
+#   ansible:
+#     config: /tmp/ansible.cfg
+#     cmdline: "--forks 15"
+#     inventories:
+#     - /tmp/test_inventory.yml
+#     playbook: /tmp/test_playbook.yml
+#
+#   ansible-runner:
+#     artifact-dir: /tmp/test1
+#     rotate-artifacts-count: 10
+#     timeout: 300
+#
+#   app: run
+#
+#   collection-doc-cache-path: /tmp/cache.db
+#
+#   color:
+#     enable: False
+#     osc4: False
+#
+#   editor:
+#     command: vim_from_setting
+#     console: False
+#
+#   documentation:
+#     plugin:
+#       name: shell
+#       type: become
+#
+#   execution-environment:
+#     container-engine: podman
+#     enabled: False
+#     environment-variables:
+#       pass:
+#         - ONE
+#         - TWO
+#         - THREE
+#       set:
+#         KEY1: VALUE1
+#         KEY2: VALUE2
+#         KEY3: VALUE3
+#     image: test_image:latest
+#     pull-policy: never
+#     volume-mounts:
+#     - src: "/test1"
+#       dest: "/test1"
+#       label: "Z"
+#     container-options:
+#     - "--net=host"
+#
+#   help-config: True
+#
+#   help-doc: True
+#
+#   help-inventory: True
+#
+#   help-playbook: False
+#
+#   inventory-columns:
+#     - ansible_network_os
+#     - ansible_network_cli_ssh_type
+#     - ansible_connection
+#
+  logging:
+    level: critical
+#     append: False
+#     file: /tmp/log.txt
+#
+#   mode: stdout
+#
+#   playbook-artifact:
+#     enable: True
+#     replay: /tmp/test_artifact.json
+#     save-as: /tmp/test_artifact.json
+[student@workstation config-navigator]$ grep -v ^# ansible-navigator.yml
+---
+ansible-navigator:
+  logging:
+    level: critical
+[student@workstation config-navigator]$ vim ansible-navigator.yml
+[student@workstation config-navigator]$ grep -v ^# ansible-navigator.yml
+---
+ansible-navigator:
+   execution-environment:
+     enabled: true
+     environment-variables:
+       set:
+         ANSIBLE_CONFIG: ansible1.cfg
+         image: hub.lab.example.com/ee-supported-rhel8:2.0 
+  logging:
+    level: critical
+   mode: stdout
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ vim ansible-navigator.yml
+[student@workstation config-navigator]$ grep -v ^# ansible-navigator.yml
+---
+ansible-navigator:
+   execution-environment:
+     enabled: true
+     environment-variables:
+       set:
+         ANSIBLE_CONFIG: ansible1.cfg
+         image: hub.lab.example.com/ee-supported-rhel8:2.0 
+  logging:
+    level: critical
+  mode: stdout
+[student@workstation config-navigator]$ vim ansible-navigator.yml
+[student@workstation config-navigator]$ grep -v ^# ansible-navigator.yml
+---
+ansible-navigator:
+   execution-environment:
+    enabled: true
+    environment-variables:
+       set:
+         ANSIBLE_CONFIG: ansible1.cfg
+         image: hub.lab.example.com/ee-supported-rhel8:2.0 
+  logging:
+    level: critical
+  mode: stdout
+[student@workstation config-navigator]$ vim ansible-navigator.yml
+[student@workstation config-navigator]$ vim ~.vimrc
+[student@workstation config-navigator]$ vim ansible-navigator.yml
+[student@workstation config-navigator]$ vim ~.vimrc
+[student@workstation config-navigator]$ cat ~.vimrc
+autocmd FileType yaml setlocal ai ts=2 sw=2 et cuc
+[student@workstation config-navigator]$ mv ~.vimrc ~/.vimrc
+[student@workstation config-navigator]$ cat ~/.vimrc
+autocmd FileType yaml setlocal ai ts=2 sw=2 et cuc
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ vim ansible-navigator.yml
+[student@workstation config-navigator]$ grep -v ^# ansible-navigator.yml
+---
+ansible-navigator:
+   execution-environment:
+     enabled: true
+     environment-variables:
+       set:
+         ANSIBLE_CONFIG: ansible1.cfg
+         image: hub.lab.example.com/ee-supported-rhel8:2.0 
+   logging:
+     level: critical
+   mode: stdout
+[student@workstation config-navigator]$ cp ansible-navigator.yml ~/.ansible-navigator.yml
+[student@workstation config-navigator]$ vim ~/.ansible-navigator.yml
+[student@workstation config-navigator]$ grep -v ^# ~/.ansible-navigator.yml
+---
+ansible-navigator:
+   execution-environment:
+     enabled: true
+     environment-variables:
+       set:
+         ANSIBLE_CONFIG: ansible2.cfg
+         image: hub.lab.example.com/ee-supported-rhel8:2.0 
+   logging:
+     level: critical
+   mode: stdout
+[student@workstation config-navigator]$ ansible-navigator run create_users.yml 
+--------------------------------------------------------------------------------------------------------------------------
+Execution environment image and pull policy overview
+--------------------------------------------------------------------------------------------------------------------------
+Execution environment image name:  registry.redhat.io/ansible-automation-platform-20-early-access/ee-supported-rhel8:2.0.0
+Execution environment image tag:   2.0.0
+Execution environment pull policy: tag
+Execution environment pull needed: True
+--------------------------------------------------------------------------------------------------------------------------
+Updating the execution environment
+--------------------------------------------------------------------------------------------------------------------------
+Trying to pull registry.redhat.io/ansible-automation-platform-20-early-access/ee-supported-rhel8:2.0.0...
+  unable to retrieve auth token: invalid username/password: unauthorized: Please login to the Red Hat Registry using your Customer Portal credentials. Further instructions can be found here: https://access.redhat.com/RegistryAuthentication
+Error: Error initializing source docker://registry.redhat.io/ansible-automation-platform-20-early-access/ee-supported-rhel8:2.0.0: unable to retrieve auth token: invalid username/password: unauthorized: Please login to the Red Hat Registry using your Customer Portal credentials. Further instructions can be found here: https://access.redhat.com/RegistryAuthentication
+[ERROR]: Execution environment pull failed
+ [HINT]: Check the execution environment image name, connectivity to and permissions for the registry, and try again
+[student@workstation config-navigator]$ vim ansible-navigator.
+[student@workstation config-navigator]$ vim ansible-navigator.yml 
+[student@workstation config-navigator]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+   execution-environment:
+     enabled: true
+     environment-variables:
+       set:
+         ANSIBLE_CONFIG: ansible1.cfg
+     image: hub.lab.example.com/ee-supported-rhel8:2.0 
+   logging:
+     level: critical
+   mode: stdout
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ cp ansible-navigator.yml ~/.ansible-navigator.yml 
+[student@workstation config-navigator]$ vim ~/.ansible-navigator.yml
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ cat ~/.ansible-navigator.yml
+---
+ansible-navigator:
+   execution-environment:
+     enabled: true
+     environment-variables:
+       set:
+         ANSIBLE_CONFIG: ansible2.cfg
+     image: hub.lab.example.com/ee-supported-rhel8:2.0 
+   logging:
+     level: critical
+   mode: stdout
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ ansible-navigator run create_users.yml 
+
+PLAY [create user accounts in devservers] **************************************
+
+TASK [Creating user from secret.yml] *******************************************
+changed: [serverb.lab.example.com]
+
+PLAY RECAP *********************************************************************
+serverb.lab.example.com    : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation config-navigator]$ mv ansible-navigator.yml backup-an.yml
+[student@workstation config-navigator]$ ls
+ansible1.cfg  ansible-navigator.log  create_users-artifact-2022-03-15T06:43:51.579648+00:00.json  inventory1  secret-pass
+ansible2.cfg  backup-an.yml          create_users.yml                                             inventory2  secret.yml
+[student@workstation config-navigator]$ ansible-navigator run create_users.yml 
+
+PLAY [create user accounts in devservers] **************************************
+
+TASK [Creating user from secret.yml] *******************************************
+changed: [servera.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation config-navigator]$ mv backup-an.yml ansible-navigator.yml
+[student@workstation config-navigator]$ echo $ANSIBLE_NAVIGATOR_CONFIG
+
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ export ANSIBLE_NAVIGATOR_CONFIG=~/.ansible-navigator.yml
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ echo $ANSIBLE_NAVIGATOR_CONFIG
+/home/student/.ansible-navigator.yml
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ ansible-navigator run create_users.yml 
+
+PLAY [create user accounts in devservers] **************************************
+
+TASK [Creating user from secret.yml] *******************************************
+ok: [servera.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation config-navigator]$ unset ANSIBLE_NAVIGATOR_CONFIG
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ echo $ANSIBLE_NAVIGATOR_CONFIG
+
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ cat ansible1.cfg 
+[defaults]
+inventory = inventory1
+vault_password_file = secret-pass
+
+[privilege_escalation]
+become = true
+become_method = sudo
+become_user = root
+become_ask_pass = false
+
+[student@workstation config-navigator]$ vim ansible1.cfg
+[student@workstation config-navigator]$ cat ansible1.cfg
+[defaults]
+inventory = inventory1
+
+[privilege_escalation]
+become = true
+become_method = sudo
+become_user = root
+become_ask_pass = false
+
+[student@workstation config-navigator]$ 
+[student@workstation config-navigator]$ vim ansible-navigator.yml 
+[student@workstation config-navigator]$ cat ansible-navigator.yml
+---
+ansible-navigator:
+   execution-environment:
+     enabled: true
+     environment-variables:
+       set:
+         ANSIBLE_CONFIG: ansible1.cfg
+     image: hub.lab.example.com/ee-supported-rhel8:2.0 
+   logging:
+     level: critical
+   mode: stdout
+   playbook-artifact:
+     enable: false
+[student@workstation config-navigator]$ ansible-navigator run create_users.yml --ask-vault-password 
+Vault password: 
+
+PLAY [create user accounts in devservers] ********************************************************************************
+
+TASK [Creating user from secret.yml] *************************************************************************************
+ok: [serverb.lab.example.com]
+
+PLAY RECAP ***************************************************************************************************************
+serverb.lab.example.com    : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation config-navigator]$ cd
+[student@workstation ~]$ lab finish config-navigator 
+
+Finishing lab.
+
+ · Checking lab systems ........................................................................................ SUCCESS
+ · Cleaning up exercise ........................................................................................ SUCCESS
+ · Cleaning up workstation system .............................................................................. SUCCESS
+
+[student@workstation ~]$ 
+
