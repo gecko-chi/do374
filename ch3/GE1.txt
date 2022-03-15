@@ -1,0 +1,37 @@
+[student@workstation ~]$ lab start controller-playbooks 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Subscribing automation controller ................................................................................................................................. SUCCESS
+ · Removing automation controller resources created during exercise .................................................................................................. SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ firefox https://controller.lab.example.com & 
+[1] 13804
+[student@workstation ~]$ curl http://serverf.lab.example.com 
+Hello world from serverf.lab.example.com.
+[1]+  Done                    firefox https://controller.lab.example.com
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+[student@workstation ~]$ curl http://serverf.lab.example.com 
+Hello world from serverf.lab.example.com.
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+[student@workstation ~]$ lab finish  controller-playbooks 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+ · Removing automation controller resources created during exercise .................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

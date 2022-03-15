@@ -1,0 +1,55 @@
+[student@workstation ~]$ lab start  controller-review 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Backing up the configuration of the systems (be patient) .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Subscribing automation controller ................................................................................................................................. SUCCESS
+ · Verifying automation controller is functional ..................................................................................................................... SUCCESS
+
+[student@workstation ~]$ firefo https://controller.lab.example.com & 
+[1] 24794
+[student@workstation ~]$ bash: firefo: command not found...
+^C
+[1]+  Exit 127                firefo https://controller.lab.example.com
+[student@workstation ~]$ firefox https://controller.lab.example.com & 
+[1] 24820
+[student@workstation ~]$ curl http://servera.lab.example.com
+Successful playbook run from controller SN-452943[1]+  Done                    firefox https://controller.lab.example.com
+[student@workstation ~]$ 
+[student@workstation ~]$ curl http://servera.lab.example.com
+Successful playbook run from controller SN-452943[student@workstation ~]$ 
+[student@workstation ~]$ 
+[student@workstation ~]$ lab grade controller-review 
+
+Grading lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing the workstation system .................................................................................................................................. SUCCESS
+ · Preparing automation controller ................................................................................................................................... SUCCESS
+ · The "reviewgitcred" git credential exists ......................................................................................................................... PASS
+ · The "reviewmachinecred" machine credential exists ................................................................................................................. PASS
+ · The "reviewinventory" inventory exists ............................................................................................................................ PASS
+ · The "reviewproject" project exists ................................................................................................................................ PASS
+ · The "reviewtemplate" job template exists .......................................................................................................................... PASS
+ · Target host 'servera' displays correct web content ................................................................................................................ PASS
+
+Overall lab grade: PASS
+
+[student@workstation ~]$ lab finish controller-review
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Removing the container images ..................................................................................................................................... SUCCESS
+ · Cleaning up the workstation system ................................................................................................................................ SUCCESS
+ · Restoring the system configuration (be patient) ................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+
