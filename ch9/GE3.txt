@@ -1,0 +1,349 @@
+[student@workstation ~]$ lab start builder-validate 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Ensuring the 'ee-minimal-rhel8' container is available ............................................................................................................ SUCCESS
+ · Ensuring the 'ee-motd-minimal' container is available ............................................................................................................. SUCCESS
+
+[student@workstation ~]$ ls
+builder-custom    config-navigator  data-loops       develop-navigator  Downloads          inventory-variables  manage-finding  manage-selecting  Public          Templates
+builder-validate  config-review     data-netfilters  develop-practices  git-repos          inventory-yaml       manage-reusing  Music             task-execution  Videos
+config-ansible    create-writing    Desktop          Documents          inventory-dynamic  lab_do374            manage-review   Pictures          task-speed
+[student@workstation ~]$ cd builder-validate/
+[student@workstation builder-validate]$ ls
+ansible.cfg  ansible-navigator.yml  ee-motd  inventory  motd-test.yml
+[student@workstation builder-validate]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+collections_paths = ./collections:/usr/share/ansible/collections 
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+
+[galaxy]
+server_list = rh-certified_repo, community_repo
+
+[galaxy_server.rh-certified_repo]
+url=https://hub.lab.example.com/api/galaxy/content/rh-certified
+#username=admin
+#password=redhat
+token=###FIXME###
+
+## Optional: If the collection you are looking for is in the community repo then add these lines and in the server_list.
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=###FIXME###
+[student@workstation builder-validate]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation builder-validate]$ cat inventory 
+[servers]
+serverc
+serverd
+[student@workstation builder-validate]$ cat motd-test.yml 
+---
+- name: Test banner role from exercise.motd collection
+  hosts: all
+  collections:
+    - exercise.motd
+  roles:
+    - name: exercise.motd.banner
+[student@workstation builder-validate]$ ssh student@erverc 
+ssh: Could not resolve hostname erverc: Name or service not known
+[student@workstation builder-validate]$ ssh student@serverc 
+Activate the web console with: systemctl enable --now cockpit.socket
+
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+Last login: Mon Mar 14 06:16:56 2022 from 172.25.250.9
+[student@serverc ~]$ exit
+logout
+Connection to serverc closed.
+[student@workstation builder-validate]$ ssh student@serverc 
+Activate the web console with: systemctl enable --now cockpit.socket
+
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+Last login: Wed Mar 16 07:36:35 2022 from 172.25.250.9
+[student@serverc ~]$ cat /etc/motd.d/cockpit 
+Activate the web console with: systemctl enable --now cockpit.socket
+
+[student@serverc ~]$ cat /etc/motd.d/insights-client 
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+[student@serverc ~]$ 
+[student@serverc ~]$ 
+[student@serverc ~]$ exit
+logout
+Connection to serverc closed.
+[student@workstation builder-validate]$ ansible-navigator run -m stdout motd-test.yml 
+ERROR! the role 'exercise.motd.banner' was not found in exercise.motd:ansible.legacy:/home/student/builder-validate/roles:/home/runner/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles:/home/student/builder-validate
+
+The error appears to be in '/home/student/builder-validate/motd-test.yml': line 7, column 7, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+  roles:
+    - name: exercise.motd.banner
+      ^ here
+[student@workstation builder-validate]$ podman images
+REPOSITORY                                 TAG     IMAGE ID      CREATED         SIZE
+localhost/ee-motd-minimal                  latest  ec7c8faad23a  10 minutes ago  420 MB
+<none>                                     <none>  dfaf39c45ef8  10 minutes ago  389 MB
+<none>                                     <none>  860697f1fd1a  11 minutes ago  396 MB
+hub.lab.example.com/ee-supported-rhel8     2.0     00aa4b51e90f  3 months ago    1.07 GB
+hub.lab.example.com/ee-supported-rhel8     latest  00aa4b51e90f  3 months ago    1.07 GB
+hub.lab.example.com/ee-minimal-rhel8       2.0     9fd78d66bbe3  3 months ago    396 MB
+hub.lab.example.com/ansible-builder-rhel8  2.0     605852593855  3 months ago    363 MB
+[student@workstation builder-validate]$ cat ansible-navigator.
+cat: ansible-navigator.: No such file or directory
+[student@workstation builder-validate]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation builder-validate]$ vim ansible-navigator.yml
+[student@workstation builder-validate]$ cat ansible-navigator.yml
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+
+  playbook-artifact:
+    enable: False
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ ansible-navigator run -m stdout --eei localhost/ee-motd-minimal --pp never -i inventory -k motd-test.yml 
+SSH password: 
+
+PLAY [Test banner role from exercise.motd collection] **************************************************************************************************************************
+
+TASK [Gathering Facts] *********************************************************************************************************************************************************
+ok: [serverc]
+ok: [serverd]
+
+TASK [exercise.motd.banner : Ensure /etc/motd.d/ exists] ***********************************************************************************************************************
+ok: [serverd]
+ok: [serverc]
+
+TASK [exercise.motd.banner : Create custom motd banner] ************************************************************************************************************************
+changed: [serverd]
+changed: [serverc]
+
+PLAY RECAP *********************************************************************************************************************************************************************
+serverc                    : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd                    : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation builder-validate]$ ssh student@serverc
+Activate the web console with: systemctl enable --now cockpit.socket
+
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+================================================================================
+================================================================================
+==                                                                            ==
+==                     This system is managed by Ansible.                     ==
+==                                                                            ==
+================================================================================
+================================================================================
+
+Last login: Wed Mar 16 07:36:43 2022 from 172.25.250.9
+[student@serverc ~]$ cat /etc/motd.d/
+banner           cockpit          insights-client  
+[student@serverc ~]$ cat /etc/motd.d/banner 
+================================================================================
+================================================================================
+==                                                                            ==
+==                     This system is managed by Ansible.                     ==
+==                                                                            ==
+================================================================================
+================================================================================
+
+[student@serverc ~]$ exit
+logout
+Connection to serverc closed.
+[student@workstation builder-validate]$ podman images 
+REPOSITORY                                 TAG     IMAGE ID      CREATED         SIZE
+localhost/ee-motd-minimal                  latest  ec7c8faad23a  12 minutes ago  420 MB
+<none>                                     <none>  dfaf39c45ef8  13 minutes ago  389 MB
+<none>                                     <none>  860697f1fd1a  13 minutes ago  396 MB
+hub.lab.example.com/ee-supported-rhel8     2.0     00aa4b51e90f  3 months ago    1.07 GB
+hub.lab.example.com/ee-supported-rhel8     latest  00aa4b51e90f  3 months ago    1.07 GB
+hub.lab.example.com/ee-minimal-rhel8       2.0     9fd78d66bbe3  3 months ago    396 MB
+hub.lab.example.com/ansible-builder-rhel8  2.0     605852593855  3 months ago    363 MB
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ podman tag localhost/ee-motd-minimal hub.lab.example.com/ee-motd-minimal
+[student@workstation builder-validate]$ podman images 
+REPOSITORY                                 TAG     IMAGE ID      CREATED         SIZE
+localhost/ee-motd-minimal                  latest  ec7c8faad23a  13 minutes ago  420 MB
+hub.lab.example.com/ee-motd-minimal        latest  ec7c8faad23a  13 minutes ago  420 MB
+<none>                                     <none>  dfaf39c45ef8  13 minutes ago  389 MB
+<none>                                     <none>  860697f1fd1a  13 minutes ago  396 MB
+hub.lab.example.com/ee-supported-rhel8     latest  00aa4b51e90f  3 months ago    1.07 GB
+hub.lab.example.com/ee-supported-rhel8     2.0     00aa4b51e90f  3 months ago    1.07 GB
+hub.lab.example.com/ee-minimal-rhel8       2.0     9fd78d66bbe3  3 months ago    396 MB
+hub.lab.example.com/ansible-builder-rhel8  2.0     605852593855  3 months ago    363 MB
+[student@workstation builder-validate]$ podman login hub.lab.example.com 
+Authenticating with existing credentials...
+Existing credentials are valid. Already logged in to hub.lab.example.com
+[student@workstation builder-validate]$ podman logout hub.lab.example.com
+Removed login credentials for hub.lab.example.com
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ podman login hub.lab.example.com 
+Username: admin
+Password: 
+Login Succeeded!
+[student@workstation builder-validate]$ podman push hub.lab.example.com/ee-motd-minimal
+Getting image source signatures
+Copying blob 6439af80f0a4 done  
+Copying blob 6e816086bf3d done  
+Copying blob a65a1b01a4d2 done  
+Copying blob efebe3fe0d93 done  
+Copying blob af092941766c done  
+Copying blob fa751636af06 done  
+Copying blob ac25d4e49895 done  
+Copying config ec7c8faad2 done  
+Writing manifest to image destination
+Storing signatures
+[student@workstation builder-validate]$ firefox https://hub.lab.example.com & 
+[1] 144007
+[student@workstation builder-validate]$ ssh student@servere
+Warning: Permanently added 'servere' (ECDSA) to the list of known hosts.
+Activate the web console with: systemctl enable --now cockpit.socket
+
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+[student@servere ~]$ ls /etc/motd.d/
+cockpit  insights-client
+[student@servere ~]$ exit
+logout
+Connection to servere closed.
+[1]+  Done                    firefox https://hub.lab.example.com
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ cat inventory 
+[servers]
+serverc
+serverd
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ echo "servere" >> inventory
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ cat inventory
+[servers]
+serverc
+serverd
+servere
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ 
+[student@workstation builder-validate]$ ansible-navigator run --eei hub.lab.example.com/ee-motd-minimal --pp always -i inventory -m stdout -k motd-test.yml 
+-----------------------------------------------------------------------------
+Execution environment image and pull policy overview
+-----------------------------------------------------------------------------
+Execution environment image name:  hub.lab.example.com/ee-motd-minimal:latest
+Execution environment image tag:   latest
+Execution environment pull policy: always
+Execution environment pull needed: True
+-----------------------------------------------------------------------------
+Updating the execution environment
+-----------------------------------------------------------------------------
+Trying to pull hub.lab.example.com/ee-motd-minimal:latest...
+Getting image source signatures
+Copying blob 80be453030cf skipped: already exists  
+Copying blob 69ebc448681d skipped: already exists  
+Copying blob dd36d94d2dab skipped: already exists  
+Copying blob 5c4402ce71c4 skipped: already exists  
+Copying blob d27279b7e50c skipped: already exists  
+Copying blob 00fe5380b165 skipped: already exists  
+Copying blob dea9fa01e313 [--------------------------------------] 0.0b / 0.0b
+Copying config ec7c8faad2 done  
+Writing manifest to image destination
+Storing signatures
+ec7c8faad23a8dad5a88c29e28d4b698eb94710b79fcf513132c72b5467eb21f
+SSH password: 
+
+PLAY [Test banner role from exercise.motd collection] **************************************************************************************************************************
+
+TASK [Gathering Facts] *********************************************************************************************************************************************************
+ok: [servere]
+ok: [serverd]
+ok: [serverc]
+
+TASK [exercise.motd.banner : Ensure /etc/motd.d/ exists] ***********************************************************************************************************************
+ok: [serverd]
+ok: [serverc]
+ok: [servere]
+
+TASK [exercise.motd.banner : Create custom motd banner] ************************************************************************************************************************
+ok: [serverd]
+ok: [serverc]
+changed: [servere]
+
+PLAY RECAP *********************************************************************************************************************************************************************
+serverc                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+servere                    : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation builder-validate]$ ssh student@servere
+Activate the web console with: systemctl enable --now cockpit.socket
+
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+================================================================================
+================================================================================
+==                                                                            ==
+==                     This system is managed by Ansible.                     ==
+==                                                                            ==
+================================================================================
+================================================================================
+
+Last login: Wed Mar 16 07:42:17 2022 from 172.25.250.9
+[student@servere ~]$ ls /etc/motd.d/
+banner  cockpit  insights-client
+[student@servere ~]$ exit
+logout
+Connection to servere closed.
+[student@workstation builder-validate]$ cd
+[student@workstation ~]$ lab finish builder-validate 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Removing images ................................................................................................................................................... SUCCESS
+ · Restoring servers ................................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

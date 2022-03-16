@@ -1,0 +1,648 @@
+[student@workstation ~]$ lab start create-writing 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+config-ansible    create-writing   Desktop            Documents  inventory-dynamic    lab_do374       manage-review     Pictures        task-speed
+config-navigator  data-loops       develop-navigator  Downloads  inventory-variables  manage-finding  manage-selecting  Public          Templates
+config-review     data-netfilters  develop-practices  git-repos  inventory-yaml       manage-reusing  Music             task-execution  Videos
+[student@workstation ~]$ cd create-writing/
+[student@workstation create-writing]$ ls
+ansible.cfg  ansible-navigator.yml  collections  inventory  myping.py  my_test_module.py  __pycache__  site.yml
+[student@workstation create-writing]$ cat ansible.cfg 
+[defaults]
+inventory = ./inventory
+remote_user=devops
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation create-writing]$ cat inventory 
+[serverd]
+serverd.lab.example.com
+
+[student@workstation create-writing]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation create-writing]$ cat myping.py 
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+from __future__ import absolute_import, division, print_function
+from ansible.module_utils.basic import AnsibleModule
+__metaclass__ = type
+
+
+DOCUMENTATION = '''
+---
+module: myping
+version_added: historical
+short_description: Try to connect to host, verify a usable python and return C(pong) on success
+description:
+   - A trivial test module, this module always returns C(pong) on successful
+     contact. It does not make sense in playbooks, but it is useful from
+     C(/usr/bin/ansible) to verify the ability to login and that a usable Python is configured.
+   - This is NOT ICMP ping, this is just a trivial test module that requires Python on the remote-node.
+   - For Windows targets, use the M(ansible.windows.win_ping) module instead.
+   - For Network targets, use the M(ansible.netcommon.net_ping) module instead.
+options:
+  data:
+    description:
+      - Data to return for the C(ping) return value.
+      - If this parameter is set to C(crash), the module will cause an exception.
+    type: str
+    default: pong
+seealso:
+- module: ansible.netcommon.net_ping
+- module: ansible.windows.win_ping
+author:
+    - Ansible Core Team
+'''
+
+EXAMPLES = '''
+# Test we can logon to 'webservers' and execute python with json lib.
+# ansible webservers -m newping
+- name: Example from an Ansible Playbook
+  newping:
+- name: Induce an exception to see what happens
+  newping:
+    data: crash
+'''
+
+RETURN = '''
+newping:
+    description: value provided with the data parameter
+    returned: success
+    type: str
+    sample: pong
+'''
+
+
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+            data=dict(type='str', default='Hello'),
+        ),
+        supports_check_mode=True
+    )
+
+    if module.params['data'] == 'crash':
+        raise Exception("boom")
+
+    result = dict(
+        newping=module.params['data'],
+    )
+
+    module.exit_json(**result)
+
+
+if __name__ == '__main__':
+    main()
+[student@workstation create-writing]$ ls
+ansible.cfg  ansible-navigator.yml  collections  inventory  myping.py  my_test_module.py  __pycache__  site.yml
+[student@workstation create-writing]$ cat my_test_module.py 
+#!/usr/bin/python
+
+from __future__ import (absolute_import, division, print_function)
+from ansible.module_utils.basic import AnsibleModule
+__metaclass__ = type
+
+DOCUMENTATION = r'''
+---
+module: my_test
+
+short_description: This is my test module
+
+# If this is part of a collection, you need to use semantic versioning,
+# i.e. the version is of the form "2.5.0" and not "2.4".
+version_added: "1.0.0"
+
+description: This is my longer description explaining my test module.
+
+options:
+    name:
+        description: This is the message to send to the test module.
+        required: true
+        type: str
+    new:
+        description:
+            - Control to demo if the result of this module is changed or not.
+            - Parameter description can be a list as well.
+        required: false
+        type: bool
+# Specify this value according to your collection
+# in format of namespace.collection.doc_fragment_name
+extends_documentation_fragment:
+    - my_namespace.my_collection.my_doc_fragment_name
+
+author:
+    - Your Name (@yourGitHubHandle)
+'''
+
+EXAMPLES = r'''
+# Pass in a message
+- name: Test with a message
+  my_namespace.my_collection.my_test:
+    name: hello world
+
+# pass in a message and have changed true
+- name: Test with a message and changed output
+  my_namespace.my_collection.my_test:
+    name: hello world
+    new: true
+
+# fail the module
+- name: Test failure of the module
+  my_namespace.my_collection.my_test:
+    name: fail me
+'''
+
+RETURN = r'''
+# These are examples of possible return values, and in general should use other names for return values.
+original_message:
+    description: The original name param that was passed in.
+    type: str
+    returned: always
+    sample: 'hello world'
+message:
+    description: The output message that the test module generates.
+    type: str
+    returned: always
+    sample: 'goodbye'
+'''
+
+
+
+def run_module():
+    # define available arguments/parameters a user can pass to the module
+    module_args = dict(
+        name=dict(type='str', required=True),
+        new=dict(type='bool', required=False, default=False)
+    )
+
+    # seed the result dict in the object
+    # we primarily care about changed and state
+    # changed is if this module effectively modified the target
+    # state will include any data that you want your module to pass back
+    # for consumption, for example, in a subsequent task
+    result = dict(
+        changed=False,
+        original_message='',
+        message=''
+    )
+
+    # the AnsibleModule object will be our abstraction working with Ansible
+    # this includes instantiation, a couple of common attr would be the
+    # args/params passed to the execution, as well as if the module
+    # supports check mode
+    module = AnsibleModule(
+        argument_spec=module_args,
+        supports_check_mode=True
+    )
+
+    # if the user is working with this module in only check mode we do not
+    # want to make any changes to the environment, just return the current
+    # state with no modifications
+    if module.check_mode:
+        module.exit_json(**result)
+
+    # manipulate or modify the state as needed (this is going to be the
+    # part where your module will do what it needs to do)
+    result['original_message'] = module.params['name']
+    result['message'] = 'goodbye'
+
+    # use whatever logic you need to determine whether or not this module
+    # made any modifications to your target
+    if module.params['new']:
+        result['changed'] = True
+
+    # during the execution of the module, if there is an exception or a
+    # conditional state that effectively causes a failure, run
+    # AnsibleModule.fail_json() to pass in the message and the result
+    if module.params['name'] == 'fail me':
+        module.fail_json(msg='You requested this to fail', **result)
+
+    # in the event of a successful module execution, you will want to
+    # simple AnsibleModule.exit_json(), passing the key/value results
+    module.exit_json(**result)
+
+
+def main():
+    run_module()
+
+
+if __name__ == '__main__':
+    main()
+[student@workstation create-writing]$ ls
+ansible.cfg  ansible-navigator.yml  collections  inventory  myping.py  my_test_module.py  __pycache__  site.yml
+[student@workstation create-writing]$ cat site.yml 
+---
+- name: Test custom collection
+  hosts: serverd.lab.example.com
+
+  roles:
+    - role: student.testcollection.mymotd
+[student@workstation create-writing]$ ls collections/
+requirements.yml
+[student@workstation create-writing]$ cat collections/requirements.yml 
+---
+collections:
+  - name: student.testcollection
+[student@workstation create-writing]$ 
+[student@workstation create-writing]$ 
+[student@workstation create-writing]$ ansible-galaxy collection init student.testcollection
+- Collection student.testcollection was created successfully
+[student@workstation create-writing]$ ls
+ansible.cfg  ansible-navigator.yml  collections  inventory  myping.py  my_test_module.py  __pycache__  site.yml  student
+[student@workstation create-writing]$ tree student/
+student/
+└── testcollection
+    ├── docs
+    ├── galaxy.yml
+    ├── plugins
+    │   └── README.md
+    ├── README.md
+    └── roles
+
+4 directories, 3 files
+[student@workstation create-writing]$ tree student/testcollection/
+student/testcollection/
+├── docs
+├── galaxy.yml
+├── plugins
+│   └── README.md
+├── README.md
+└── roles
+
+3 directories, 3 files
+[student@workstation create-writing]$ cd student/testcollection/
+[student@workstation testcollection]$ cat galaxy.yml 
+### REQUIRED
+# The namespace of the collection. This can be a company/brand/organization or product namespace under which all
+# content lives. May only contain alphanumeric lowercase characters and underscores. Namespaces cannot start with
+# underscores or numbers and cannot contain consecutive underscores
+namespace: student
+
+# The name of the collection. Has the same character restrictions as 'namespace'
+name: testcollection
+
+# The version of the collection. Must be compatible with semantic versioning
+version: 1.0.0
+
+# The path to the Markdown (.md) readme file. This path is relative to the root of the collection
+readme: README.md
+
+# A list of the collection's content authors. Can be just the name or in the format 'Full Name <email> (url)
+# @nicks:irc/im.site#channel'
+authors:
+- your name <example@domain.com>
+
+
+### OPTIONAL but strongly recommended
+# A short summary description of the collection
+description: your collection description
+
+# Either a single license or a list of licenses for content inside of a collection. Ansible Galaxy currently only
+# accepts L(SPDX,https://spdx.org/licenses/) licenses. This key is mutually exclusive with 'license_file'
+license:
+- GPL-2.0-or-later
+
+# The path to the license file for the collection. This path is relative to the root of the collection. This key is
+# mutually exclusive with 'license'
+license_file: ''
+
+# A list of tags you want to associate with the collection for indexing/searching. A tag name has the same character
+# requirements as 'namespace' and 'name'
+tags: []
+
+# Collections that this collection requires to be installed for it to be usable. The key of the dict is the
+# collection label 'namespace.name'. The value is a version range
+# L(specifiers,https://python-semanticversion.readthedocs.io/en/latest/#requirement-specification). Multiple version
+# range specifiers can be set and are separated by ','
+dependencies: {}
+
+# The URL of the originating SCM repository
+repository: http://example.com/repository
+
+# The URL to any online docs
+documentation: http://docs.example.com
+
+# The URL to the homepage of the collection/project
+homepage: http://example.com
+
+# The URL to the collection issue tracker
+issues: http://example.com/issue/tracker
+
+# A list of file glob-like patterns used to filter any files or directories that should not be included in the build
+# artifact. A pattern is matched from the relative path of the file or directory of the collection directory. This
+# uses 'fnmatch' to match the files or directories. Some directories and files like 'galaxy.yml', '*.pyc', '*.retry',
+# and '.git' are always filtered
+build_ignore: []
+
+[student@workstation testcollection]$ 
+[student@workstation testcollection]$ 
+[student@workstation testcollection]$ grep -Ev "^#|^$" galaxy.yml 
+namespace: student
+name: testcollection
+version: 1.0.0
+readme: README.md
+authors:
+- your name <example@domain.com>
+description: your collection description
+license:
+- GPL-2.0-or-later
+license_file: ''
+tags: []
+dependencies: {}
+repository: http://example.com/repository
+documentation: http://docs.example.com
+homepage: http://example.com
+issues: http://example.com/issue/tracker
+build_ignore: []
+[student@workstation testcollection]$ ls
+docs  galaxy.yml  plugins  README.md  roles
+[student@workstation testcollection]$ mkdir meta
+[student@workstation testcollection]$ ls
+docs  galaxy.yml  meta  plugins  README.md  roles
+[student@workstation testcollection]$ vim meta/runtime.yml
+[student@workstation testcollection]$ cat meta/runtime.yml
+---
+requires_ansible: '>=2.9.10'
+[student@workstation testcollection]$ 
+[student@workstation testcollection]$ 
+[student@workstation testcollection]$ cd plugins/
+[student@workstation plugins]$ ls
+README.md
+[student@workstation plugins]$ mkdir modules
+[student@workstation plugins]$ cd modules/
+[student@workstation modules]$ ls
+[student@workstation modules]$ cp ~/create-writing/*.py .
+[student@workstation modules]$ ls
+myping.py  my_test_module.py
+[student@workstation modules]$ cd ~/create-writing/student/testcollection/roles/
+[student@workstation roles]$ ls
+[student@workstation roles]$ ansible-galaxy role init mymotd
+- Role mymotd was created successfully
+[student@workstation roles]$ ls
+mymotd
+[student@workstation roles]$ tree mymotd/
+mymotd/
+├── defaults
+│   └── main.yml
+├── files
+├── handlers
+│   └── main.yml
+├── meta
+│   └── main.yml
+├── README.md
+├── tasks
+│   └── main.yml
+├── templates
+├── tests
+│   ├── inventory
+│   └── test.yml
+└── vars
+    └── main.yml
+
+8 directories, 8 files
+[student@workstation roles]$ cd mymotd/
+[student@workstation mymotd]$ vim templates/motd.j2
+[student@workstation mymotd]$ cat templates/motd.j2
+This is the system {{ ansible_facts['hostname'] }}.
+
+Today's date is: {{ ansible_facts['date_time']['date'] }}.
+[student@workstation mymotd]$ 
+[student@workstation mymotd]$ 
+[student@workstation mymotd]$ cat tasks/main.yml 
+---
+# tasks file for mymotd
+[student@workstation mymotd]$ 
+[student@workstation mymotd]$ vim tasks/main.yml
+[student@workstation mymotd]$ cat tasks/main.yml
+---
+# tasks file for mymotd
+- name: motd role for collection
+  template:
+    src: motd.j2
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: 0444
+[student@workstation mymotd]$ 
+[student@workstation mymotd]$ cd ~/create-writing/student/testcollection/
+[student@workstation testcollection]$ tree
+.
+├── docs
+├── galaxy.yml
+├── meta
+│   └── runtime.yml
+├── plugins
+│   ├── modules
+│   │   ├── myping.py
+│   │   └── my_test_module.py
+│   └── README.md
+├── README.md
+└── roles
+    └── mymotd
+        ├── defaults
+        │   └── main.yml
+        ├── files
+        ├── handlers
+        │   └── main.yml
+        ├── meta
+        │   └── main.yml
+        ├── README.md
+        ├── tasks
+        │   └── main.yml
+        ├── templates
+        │   └── motd.j2
+        ├── tests
+        │   ├── inventory
+        │   └── test.yml
+        └── vars
+            └── main.yml
+
+14 directories, 15 files
+[student@workstation testcollection]$ rm -vr docs/ roles/mymotd/{files,handlers,tests,vars}
+removed directory 'docs/'
+removed directory 'roles/mymotd/files'
+removed 'roles/mymotd/handlers/main.yml'
+removed directory 'roles/mymotd/handlers'
+removed 'roles/mymotd/tests/inventory'
+removed 'roles/mymotd/tests/test.yml'
+removed directory 'roles/mymotd/tests'
+removed 'roles/mymotd/vars/main.yml'
+removed directory 'roles/mymotd/vars'
+[student@workstation testcollection]$ tree 
+.
+├── galaxy.yml
+├── meta
+│   └── runtime.yml
+├── plugins
+│   ├── modules
+│   │   ├── myping.py
+│   │   └── my_test_module.py
+│   └── README.md
+├── README.md
+└── roles
+    └── mymotd
+        ├── defaults
+        │   └── main.yml
+        ├── meta
+        │   └── main.yml
+        ├── README.md
+        ├── tasks
+        │   └── main.yml
+        └── templates
+            └── motd.j2
+
+9 directories, 11 files
+[student@workstation testcollection]$ ansible-galaxy collection build
+Created collection for student.testcollection at /home/student/create-writing/student/testcollection/student-testcollection-1.0.0.tar.gz
+[student@workstation testcollection]$ ls
+galaxy.yml  meta  plugins  README.md  roles  student-testcollection-1.0.0.tar.gz
+[student@workstation testcollection]$ cat README.md 
+# Ansible Collection - student.testcollection
+
+Documentation for the collection.
+[student@workstation testcollection]$ firefox https://hub.lab.example.com & 
+[1] 123728
+[student@workstation testcollection]$ cat ~/create-writing/ansible.cfg 
+[defaults]
+inventory = ./inventory
+remote_user=devops
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation testcollection]$ 
+[student@workstation testcollection]$ 
+[student@workstation testcollection]$ vim ~/create-writing/ansible.cfg
+[student@workstation testcollection]$ cat ~/create-writing/ansible.cfg
+[defaults]
+inventory = ./inventory
+remote_user=devops
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+
+[galaxy]
+server_list = hub_student
+
+[galaxy_server.hub_student]
+url=https://hub.lab.example.com/api/galaxy/content/inbound-student/
+token=b4a6a898ec7608482fba07afe39c8a0d24357f46
+[student@workstation testcollection]$ 
+[student@workstation testcollection]$ 
+[student@workstation testcollection]$ cd ~/create-writing/
+[student@workstation create-writing]$ ansible-galaxy collection publish -v ~/create-writing/student/testcollection/student-testcollection-1.0.0.tar.gz 
+Using /home/student/create-writing/ansible.cfg as config file
+Publishing collection artifact '/home/student/create-writing/student/testcollection/student-testcollection-1.0.0.tar.gz' to hub_student https://hub.lab.example.com/api/galaxy/content/inbound-student/
+Collection has been published to the Galaxy server hub_student https://hub.lab.example.com/api/galaxy/content/inbound-student/
+Waiting until Galaxy import task https://hub.lab.example.com/api/galaxy/content/inbound-student/v3/imports/collections/0ee84bcf-79ce-48f0-9750-1ed849cc20b2/ has completed
+Collection has been successfully published and imported to the Galaxy server hub_student https://hub.lab.example.com/api/galaxy/content/inbound-student/
+[student@workstation create-writing]$ 
+[student@workstation create-writing]$ 
+[student@workstation create-writing]$ vim ~/create-writing/ansible.cfg 
+[student@workstation create-writing]$ cat ~/create-writing/ansible.cfg
+[defaults]
+inventory = ./inventory
+remote_user=devops
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+
+[galaxy]
+server_list = hub_student, hub_published
+
+[galaxy_server.hub_student]
+url=https://hub.lab.example.com/api/galaxy/content/inbound-student/
+token=b4a6a898ec7608482fba07afe39c8a0d24357f46
+
+[galaxy_server.hub_published]
+url=https://hub.lab.example.com/api/galaxy/content/published/
+token=b4a6a898ec7608482fba07afe39c8a0d24357f46
+[student@workstation create-writing]$ 
+[student@workstation create-writing]$ 
+[student@workstation create-writing]$ cat collections/requirements.yml 
+---
+collections:
+  - name: student.testcollection
+[student@workstation create-writing]$ 
+[student@workstation create-writing]$ 
+[student@workstation create-writing]$ ansible-galaxy collection install -r collections/requirements.yml -p collections/
+Starting galaxy collection install process
+[WARNING]: The specified collections path '/home/student/create-writing/collections' is not part of the configured Ansible collections paths
+'/home/student/.ansible/collections:/usr/share/ansible/collections'. The installed collection won't be picked up in an Ansible run.
+Process install dependency map
+Starting collection install process
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/published/student-testcollection-1.0.0.tar.gz to /home/student/.ansible/tmp/ansible-local-124243b33paq7s/tmpmx5s_jg3/student-testcollection-1.0.0-8znlqxta
+Installing 'student.testcollection:1.0.0' to '/home/student/create-writing/collections/ansible_collections/student/testcollection'
+student.testcollection:1.0.0 was installed successfully
+[student@workstation create-writing]$ 
+[student@workstation create-writing]$ 
+[student@workstation create-writing]$ cat site.yml 
+---
+- name: Test custom collection
+  hosts: serverd.lab.example.com
+
+  roles:
+    - role: student.testcollection.mymotd
+[student@workstation create-writing]$ ansible-navigator run -m stdout site.yml
+
+PLAY [Test custom collection] **************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverd.lab.example.com]
+
+TASK [student.testcollection.mymotd : motd role for collection] ****************
+changed: [serverd.lab.example.com]
+
+PLAY RECAP *********************************************************************
+serverd.lab.example.com    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation create-writing]$ ssh serverd 
+Warning: Permanently added 'serverd' (ECDSA) to the list of known hosts.
+This is the system serverd.
+
+Today's date is: 2022-03-16.
+Activate the web console with: systemctl enable --now cockpit.socket
+
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+[student@serverd ~]$ logout
+Connection to serverd closed.
+[student@workstation create-writing]$ cd
+[student@workstation ~]$ lab finish create-writing 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

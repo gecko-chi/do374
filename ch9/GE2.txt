@@ -1,0 +1,293 @@
+[student@workstation ~]$ lab start builder-custom 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Ensuring the 'ee-minimal-rhel8' container is available ............................................................................................................ SUCCESS
+
+[student@workstation ~]$ ls
+builder-custom    config-review   data-netfilters    develop-practices  git-repos            inventory-yaml  manage-reusing    Music     task-execution  Videos
+config-ansible    create-writing  Desktop            Documents          inventory-dynamic    lab_do374       manage-review     Pictures  task-speed
+config-navigator  data-loops      develop-navigator  Downloads          inventory-variables  manage-finding  manage-selecting  Public    Templates
+[student@workstation ~]$ tree builder-custom/
+builder-custom/
+├── exercise.motd
+├── exercise.motd.tar.gz
+└── solutions
+    ├── bindep.txt
+    ├── execution-environment.yml
+    ├── requirements.txt
+    └── requirements.yml
+
+2 directories, 5 files
+[student@workstation ~]$ cd builder-custom/exercise.motd/
+[student@workstation exercise.motd]$ ls
+[student@workstation exercise.motd]$ tar -xzf ../exercise.motd.tar.gz 
+[student@workstation exercise.motd]$ ls
+FILES.json  galaxy.yml  MANIFEST.json  README.md  roles
+[student@workstation exercise.motd]$ tree 
+.
+├── FILES.json
+├── galaxy.yml
+├── MANIFEST.json
+├── README.md
+└── roles
+    └── banner
+        ├── defaults
+        │   └── main.yml
+        ├── meta
+        │   └── main.yml
+        ├── README.md
+        ├── tasks
+        │   └── main.yml
+        └── templates
+            └── motd.j2
+
+6 directories, 9 files
+[student@workstation exercise.motd]$ cat roles/banner/templates/motd.j2 
+================================================================================
+================================================================================
+==                                                                            ==
+{{ formatted_msg_1 }}
+{{ formatted_msg_2 }}
+==                                                                            ==
+================================================================================
+================================================================================
+
+[student@workstation exercise.motd]$ cat roles/banner/tasks/main.yml 
+---
+# tasks file for banner
+- name: Ensure /etc/motd.d/ exists
+  file:
+    path: /etc/motd.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create custom motd banner
+  vars:
+    left_pad_1: "{{ (width - (message_1 | length)) // 2 }}"
+    left_pad_2: "{{ (width - (message_2 | length)) // 2 }}"
+    right_pad_1: "{{ left_pad_1|int + ((width - (message_1 | length)) % 2) }}"
+    right_pad_2: "{{ left_pad_2|int + ((width - (message_2 | length)) % 2) }}"  
+    formatted_msg_1: "=={% for x in range((left_pad_1|int) - 1) %} {% endfor %}{{ message_1 }}{% for y in range((right_pad_1|int) - 1) %} {% endfor %}=="
+    formatted_msg_2: "=={% for x in range((left_pad_2|int) - 1) %} {% endfor %}{{ message_2 }}{% for y in range((right_pad_2|int) - 1) %} {% endfor %}==" 
+  template:
+    src: motd.j2
+    dest: /etc/motd.d/banner
+[student@workstation exercise.motd]$ mkdir ~/builder-custom/ee-motd
+[student@workstation exercise.motd]$ cd ~/builder-custom/ee-motd
+[student@workstation ee-motd]$ ls
+[student@workstation ee-motd]$ vim execution-environment.yml
+[student@workstation ee-motd]$ cat execution-environment.yml
+---
+version: 1
+build_arg_defaults:
+  EE_BASE_IMAGE: 'hub.lab.example.com/ee-minimal-rhel8:2.0'
+  EE_BUILDER_IMAGE: 'hub.lab.examle.com/ansible-builder-rhel8:2.0'
+dependencies:
+  galaxy: requirements.yml
+  python: requirements.txt
+  system: bindep.txt
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ ls
+execution-environment.yml
+[student@workstation ee-motd]$ vim requirements.yml
+[student@workstation ee-motd]$ cat requirements.yml
+---
+collections:
+  - name: /build/exercise.motd.tar.gz
+    type: file
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ ls
+execution-environment.yml  requirements.yml
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ vim requirements.txt
+[student@workstation ee-motd]$ cat requirements.txt
+# Python dependencies
+funmotd
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ ls
+execution-environment.yml  requirements.txt  requirements.yml
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ vim bindep.txt
+[student@workstation ee-motd]$ cat bindep.txt
+# System-level dependencies
+hostname
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ ls
+bindep.txt  execution-environment.yml  requirements.txt  requirements.yml
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ sudo yum install ansible-builder
+[sudo] password for student: 
+Last metadata expiration check: 0:26:19 ago on Wed 16 Mar 2022 06:52:15 AM EDT.
+Dependencies resolved.
+================================================================================================================================================================================
+ Package                                  Architecture       Version                      Repository                                                                       Size
+================================================================================================================================================================================
+Installing:
+ ansible-builder                          noarch             1.0.1-1.el8ap                ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms              37 k
+Installing dependencies:
+ python38-requirements-parser             noarch             0.2.0-3.el8ap                ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms              20 k
+
+Transaction Summary
+================================================================================================================================================================================
+Install  2 Packages
+
+Total download size: 58 k
+Installed size: 116 k
+Is this ok [y/N]: y
+Downloading Packages:
+(1/2): ansible-builder-1.0.1-1.el8ap.noarch.rpm                                                                                                 923 kB/s |  37 kB     00:00    
+(2/2): python38-requirements-parser-0.2.0-3.el8ap.noarch.rpm                                                                                    466 kB/s |  20 kB     00:00    
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Total                                                                                                                                           1.3 MB/s |  58 kB     00:00     
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                                                                                                                        1/1 
+  Installing       : python38-requirements-parser-0.2.0-3.el8ap.noarch                                                                                                      1/2 
+  Installing       : ansible-builder-1.0.1-1.el8ap.noarch                                                                                                                   2/2 
+  Running scriptlet: ansible-builder-1.0.1-1.el8ap.noarch                                                                                                                   2/2 
+  Verifying        : python38-requirements-parser-0.2.0-3.el8ap.noarch                                                                                                      1/2 
+  Verifying        : ansible-builder-1.0.1-1.el8ap.noarch                                                                                                                   2/2 
+
+Installed:
+  ansible-builder-1.0.1-1.el8ap.noarch                                             python38-requirements-parser-0.2.0-3.el8ap.noarch                                            
+
+Complete!
+[student@workstation ee-motd]$ ansible-builder create
+Complete! The build context can be found at: /home/student/builder-custom/ee-motd/context
+[student@workstation ee-motd]$ ls
+bindep.txt  context  execution-environment.yml  requirements.txt  requirements.yml
+[student@workstation ee-motd]$ tree 
+.
+├── bindep.txt
+├── context
+│   ├── _build
+│   │   ├── bindep.txt
+│   │   ├── requirements.txt
+│   │   └── requirements.yml
+│   └── Containerfile
+├── execution-environment.yml
+├── requirements.txt
+└── requirements.yml
+
+2 directories, 8 files
+[student@workstation ee-motd]$ cp ../exercise.motd.tar.gz context/_build/
+[student@workstation ee-motd]$ tree 
+.
+├── bindep.txt
+├── context
+│   ├── _build
+│   │   ├── bindep.txt
+│   │   ├── exercise.motd.tar.gz
+│   │   ├── requirements.txt
+│   │   └── requirements.yml
+│   └── Containerfile
+├── execution-environment.yml
+├── requirements.txt
+└── requirements.yml
+
+2 directories, 9 files
+[student@workstation ee-motd]$ ansible-builder build -t ee-motd-minimal:1.0 
+Running command:
+  podman build -f context/Containerfile -t ee-motd-minimal:1.0 context
+...showing last 20 lines of output...
+--> ba65cdb906c
+STEP 3: USER root
+--> 5079152105e
+STEP 4: ADD _build /build
+--> ea9f91f9da1
+STEP 5: WORKDIR /build
+--> e7eb7494a26
+STEP 6: RUN ansible-galaxy role install -r requirements.yml --roles-path /usr/share/ansible/roles
+Skipping install, no requirements found
+--> d2cdf1380d2
+STEP 7: RUN ansible-galaxy collection install $ANSIBLE_GALAXY_CLI_COLLECTION_OPTS -r requirements.yml --collections-path /usr/share/ansible/collections
+Starting galaxy collection install process
+Process install dependency map
+Starting collection install process
+Installing 'exercise.motd:1.0.0' to '/usr/share/ansible/collections/ansible_collections/exercise/motd'
+exercise.motd:1.0.0 was installed successfully
+--> 10f638da84c
+STEP 8: FROM hub.lab.examle.com/ansible-builder-rhel8:2.0 AS builder
+STEP 9: FROM hub.lab.example.com/ee-minimal-rhel8:2.0
+Error: error creating build container: Error initializing source docker://hub.lab.examle.com/ansible-builder-rhel8:2.0: error pinging docker registry hub.lab.examle.com: Get "https://hub.lab.examle.com/v2/": x509: certificate is valid for *.mytrafficmanagement.com, mytrafficmanagement.com, not hub.lab.examle.com
+
+An error occured (rc=125), see output line(s) above for details.
+[student@workstation ee-motd]$ vim execution-environment.yml 
+[student@workstation ee-motd]$ cat execution-environment.yml
+---
+version: 1
+build_arg_defaults:
+  EE_BASE_IMAGE: 'hub.lab.example.com/ee-minimal-rhel8:2.0'
+  EE_BUILDER_IMAGE: 'hub.lab.example.com/ansible-builder-rhel8:2.0'
+dependencies:
+  galaxy: requirements.yml
+  python: requirements.txt
+  system: bindep.txt
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ 
+[student@workstation ee-motd]$ ansible-builder build -t ee-motd-minimal:1.0 
+Running command:
+  podman build -f context/Containerfile -t ee-motd-minimal:1.0 context
+Complete! The build context can be found at: /home/student/builder-custom/ee-motd/context
+[student@workstation ee-motd]$ podman images 
+REPOSITORY                                 TAG     IMAGE ID      CREATED             SIZE
+localhost/ee-motd-minimal                  1.0     ff0f3ec1bec8  16 seconds ago      421 MB
+<none>                                     <none>  2a0f7469630e  31 seconds ago      389 MB
+<none>                                     <none>  10f638da84c8  About a minute ago  396 MB
+hub.lab.example.com/ee-supported-rhel8     latest  00aa4b51e90f  3 months ago        1.07 GB
+hub.lab.example.com/ee-supported-rhel8     2.0     00aa4b51e90f  3 months ago        1.07 GB
+hub.lab.example.com/ee-minimal-rhel8       2.0     9fd78d66bbe3  3 months ago        396 MB
+hub.lab.example.com/ansible-builder-rhel8  2.0     605852593855  3 months ago        363 MB
+[student@workstation ee-motd]$ podman rmi 2a0f7469630e 10f638da84c8
+da171fc75c010e8cf2ed0a8a3449de97fea8b9841190692ce275b896812b3bba
+80601d671562569ce6d34bb70b7f96cacbefb0d80881ef012a0b01bf57bf2c19
+ef4b023a9c3add3894561f62e85eefdb6c3e8dbcfc36a9e6748d3530217641ca
+6573d47d425b803600239c12105c557804a75668f1beaa4676ebca1c60a350a9
+d2cdf1380d23cca1248b4c9883f323680ec7060b60ea559da78a4d27eb754914
+e7eb7494a265edd7032bbcff2fb61561f952491f351a89c6407ab02f3da3f24c
+ea9f91f9da107403b892c2d50cf04f078499eadafe93a5d038354a804280b0df
+5079152105e08d3bbab25da9e895c9ca097c9cea436d8093b3febc515593c73d
+ba65cdb906ce042941c7479accb6a9aa1b4b26e40c7514eebed5653484c0b60c
+Deleted: 2a0f7469630e6194253c58d4699933c558c90722712939fb097f7c5f065471be
+Deleted: 10f638da84c8efa832d9b2a03ad0b8f1f13804670ac6f1457e1f4712ae88485e
+[student@workstation ee-motd]$ podman images 
+REPOSITORY                                 TAG     IMAGE ID      CREATED         SIZE
+localhost/ee-motd-minimal                  1.0     ff0f3ec1bec8  39 seconds ago  421 MB
+hub.lab.example.com/ee-supported-rhel8     latest  00aa4b51e90f  3 months ago    1.07 GB
+hub.lab.example.com/ee-supported-rhel8     2.0     00aa4b51e90f  3 months ago    1.07 GB
+hub.lab.example.com/ee-minimal-rhel8       2.0     9fd78d66bbe3  3 months ago    396 MB
+hub.lab.example.com/ansible-builder-rhel8  2.0     605852593855  3 months ago    363 MB
+[student@workstation ee-motd]$ sudo yum install ansible-navigator
+Last metadata expiration check: 0:30:13 ago on Wed 16 Mar 2022 06:52:15 AM EDT.
+Package ansible-navigator-1.0.0-2.el8ap.noarch is already installed.
+Dependencies resolved.
+Nothing to do.
+Complete!
+[student@workstation ee-motd]$ ansible-navigator images --pp never --eei localhost/ee-motd-minimal:1.0 
+[student@workstation ee-motd]$ cd
+[student@workstation ~]$ lab finish builder-custom 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up exercise .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

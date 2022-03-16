@@ -1,0 +1,67 @@
+[student@workstation ~]$ lab start builder-use 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Building content collection ....................................................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Subscribing automation controller ................................................................................................................................. SUCCESS
+ · Configuring automation controller resources needed for exercise ................................................................................................... SUCCESS
+ · Verifying automation controller is functional ..................................................................................................................... SUCCESS
+
+[student@workstation ~]$ firefox https://hub.lab.example.com & 
+[1] 153034
+[student@workstation ~]$ firefox https://controller.lab.example.com & 
+[2] 153354
+[student@workstation ~]$ ssh student@servera
+Activate the web console with: systemctl enable --now cockpit.socket
+
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+Last login: Wed Mar 16 01:39:58 2022 from 172.25.250.9
+[student@servera ~]$ ls /etc/motd.d/
+cockpit  insights-client
+[student@servera ~]$ exit
+logout
+Connection to servera closed.
+[2]+  Done                    firefox https://controller.lab.example.com
+[student@workstation ~]$ ssh student@servera
+Activate the web console with: systemctl enable --now cockpit.socket
+
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+================================================================================
+================================================================================
+==                                                                            ==
+==                     This system is managed by Ansible.                     ==
+==                                                                            ==
+================================================================================
+================================================================================
+
+Last login: Wed Mar 16 08:02:37 2022 from 172.25.250.9
+[student@servera ~]$ ls /etc/motd.d/
+banner  cockpit  insights-client
+[student@servera ~]$ exit
+logout
+Connection to servera closed.
+[student@workstation ~]$ lab finish builder-use 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Restoring servers ................................................................................................................................................. SUCCESS
+ · Removing automation controller resources created during exercise .................................................................................................. SUCCESS
+
+[1]+  Done                    firefox https://hub.lab.example.com
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+[student@workstation ~]$ 
+
