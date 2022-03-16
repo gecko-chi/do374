@@ -1,0 +1,561 @@
+[student@workstation ~]$ lab start update-parallelism 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Preparing the servers - part 1 .................................................................................................................................... SUCCESS
+ · Preparing the servers - part 2 .................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ mkdir -p ~/git-repos
+[student@workstation ~]$ cd ~/git-repos
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/update-parallelism.git
+Cloning into 'update-parallelism'...
+remote: Enumerating objects: 7, done.
+remote: Counting objects: 100% (7/7), done.
+remote: Compressing objects: 100% (7/7), done.
+remote: Total 7 (delta 0), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (7/7), 931 bytes | 931.00 KiB/s, done.
+[student@workstation git-repos]$ ls
+data-filters  data-lookups  data-review  develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging  update-delegation  update-parallelism
+[student@workstation git-repos]$ cd update-parallelism/
+[student@workstation update-parallelism]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation update-parallelism]$ ls
+ansible.cfg  ansible-navigator.yml  inventory  playbook.yml  remove_httpd.yml
+[student@workstation update-parallelism]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+forks=4
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation update-parallelism]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation update-parallelism]$ cat inventory 
+[webservers]
+servera.lab.example.com
+serverb.lab.example.com
+serverc.lab.example.com
+serverd.lab.example.com
+[student@workstation update-parallelism]$ cat playbook.yml 
+---
+- name: Update web server
+  hosts: webservers
+
+  tasks:
+    - name: Lastest httpd package installed
+      yum:
+        name: httpd
+        state: latest
+      notify:
+        - Restart httpd
+
+  handlers:
+    - name: Restart httpd
+      service:
+        name: httpd
+        enabled: true
+        state: restarted
+
+[student@workstation update-parallelism]$ cat remove_httpd.yml 
+---
+- name: Remove web server
+  hosts: webservers
+
+  tasks:
+    - name: Disable httpd service
+      service:
+        name: httpd
+        enabled: false
+        state: stopped
+
+    - name: Remove httpd package
+      yum:
+        name: httpd
+        state: absent
+        autoremove: true
+
+[student@workstation update-parallelism]$ 
+[student@workstation update-parallelism]$ 
+[student@workstation update-parallelism]$ cat inventory 
+[webservers]
+servera.lab.example.com
+serverb.lab.example.com
+serverc.lab.example.com
+serverd.lab.example.com
+[student@workstation update-parallelism]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+forks=4
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation update-parallelism]$ cat playbook.yml 
+---
+- name: Update web server
+  hosts: webservers
+
+  tasks:
+    - name: Lastest httpd package installed
+      yum:
+        name: httpd
+        state: latest
+      notify:
+        - Restart httpd
+
+  handlers:
+    - name: Restart httpd
+      service:
+        name: httpd
+        enabled: true
+        state: restarted
+
+[student@workstation update-parallelism]$ cat remove_httpd.yml 
+---
+- name: Remove web server
+  hosts: webservers
+
+  tasks:
+    - name: Disable httpd service
+      service:
+        name: httpd
+        enabled: false
+        state: stopped
+
+    - name: Remove httpd package
+      yum:
+        name: httpd
+        state: absent
+        autoremove: true
+
+[student@workstation update-parallelism]$ time ansible-navigator run -m stdout playbook.yml 
+
+PLAY [Update web server] *******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverc.lab.example.com]
+ok: [serverd.lab.example.com]
+ok: [serverb.lab.example.com]
+ok: [servera.lab.example.com]
+
+TASK [Lastest httpd package installed] *****************************************
+changed: [serverc.lab.example.com]
+changed: [servera.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [serverd.lab.example.com]
+
+RUNNING HANDLER [Restart httpd] ************************************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [serverd.lab.example.com]
+changed: [servera.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+
+real	0m11.012s
+user	0m10.966s
+sys	0m0.291s
+[student@workstation update-parallelism]$ ansible-navigator run -m stdout remove_httpd.yml 
+
+PLAY [Remove web server] *******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverb.lab.example.com]
+ok: [serverc.lab.example.com]
+ok: [serverd.lab.example.com]
+ok: [servera.lab.example.com]
+
+TASK [Disable httpd service] ***************************************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [serverd.lab.example.com]
+changed: [servera.lab.example.com]
+
+TASK [Remove httpd package] ****************************************************
+changed: [serverc.lab.example.com]
+changed: [serverd.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [servera.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation update-parallelism]$ cat remove_httpd.yml
+---
+- name: Remove web server
+  hosts: webservers
+
+  tasks:
+    - name: Disable httpd service
+      service:
+        name: httpd
+        enabled: false
+        state: stopped
+
+    - name: Remove httpd package
+      yum:
+        name: httpd
+        state: absent
+        autoremove: true
+
+[student@workstation update-parallelism]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+forks=4
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation update-parallelism]$ 
+[student@workstation update-parallelism]$ vim ansible.cfg
+[student@workstation update-parallelism]$ cat ansible.cfg
+[defaults]
+inventory=inventory
+remote_user=devops
+forks=1
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation update-parallelism]$ 
+[student@workstation update-parallelism]$ time ansible-navigator run -m stdout playbook.yml 
+
+PLAY [Update web server] *******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [servera.lab.example.com]
+ok: [serverb.lab.example.com]
+ok: [serverc.lab.example.com]
+ok: [serverd.lab.example.com]
+
+TASK [Lastest httpd package installed] *****************************************
+changed: [servera.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+changed: [serverd.lab.example.com]
+
+RUNNING HANDLER [Restart httpd] ************************************************
+changed: [servera.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+changed: [serverd.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+
+real	0m27.265s
+user	0m27.233s
+sys	0m0.311s
+[student@workstation update-parallelism]$ ansible-navigator run -m stdout remove_httpd.yml 
+
+PLAY [Remove web server] *******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [servera.lab.example.com]
+ok: [serverb.lab.example.com]
+ok: [serverc.lab.example.com]
+ok: [serverd.lab.example.com]
+
+TASK [Disable httpd service] ***************************************************
+changed: [servera.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+changed: [serverd.lab.example.com]
+
+TASK [Remove httpd package] ****************************************************
+changed: [servera.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+changed: [serverd.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation update-parallelism]$ cat playbook.yml 
+---
+- name: Update web server
+  hosts: webservers
+
+  tasks:
+    - name: Lastest httpd package installed
+      yum:
+        name: httpd
+        state: latest
+      notify:
+        - Restart httpd
+
+  handlers:
+    - name: Restart httpd
+      service:
+        name: httpd
+        enabled: true
+        state: restarted
+
+[student@workstation update-parallelism]$ vim playbook.yml
+[student@workstation update-parallelism]$ cat playbook.yml
+---
+- name: Update web server
+  hosts: webservers
+  serial: 2
+
+  tasks:
+    - name: Lastest httpd package installed
+      yum:
+        name: httpd
+        state: latest
+      notify:
+        - Restart httpd
+
+  handlers:
+    - name: Restart httpd
+      service:
+        name: httpd
+        enabled: true
+        state: restarted
+
+[student@workstation update-parallelism]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+forks=1
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation update-parallelism]$ vim ansible.cfg
+[student@workstation update-parallelism]$ cat ansible.cfg
+[defaults]
+inventory=inventory
+remote_user=devops
+forks=2
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation update-parallelism]$ 
+[student@workstation update-parallelism]$ ansible-navigator run -m stdout playbook.yml 
+
+PLAY [Update web server] *******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverb.lab.example.com]
+ok: [servera.lab.example.com]
+
+TASK [Lastest httpd package installed] *****************************************
+changed: [serverb.lab.example.com]
+changed: [servera.lab.example.com]
+
+RUNNING HANDLER [Restart httpd] ************************************************
+changed: [servera.lab.example.com]
+changed: [serverb.lab.example.com]
+
+PLAY [Update web server] *******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverc.lab.example.com]
+ok: [serverd.lab.example.com]
+
+TASK [Lastest httpd package installed] *****************************************
+changed: [serverd.lab.example.com]
+changed: [serverc.lab.example.com]
+
+RUNNING HANDLER [Restart httpd] ************************************************
+changed: [serverc.lab.example.com]
+changed: [serverd.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation update-parallelism]$ ansible-navigator run -m stdout remove_httpd.yml 
+
+PLAY [Remove web server] *******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverb.lab.example.com]
+ok: [servera.lab.example.com]
+ok: [serverc.lab.example.com]
+ok: [serverd.lab.example.com]
+
+TASK [Disable httpd service] ***************************************************
+changed: [servera.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+changed: [serverd.lab.example.com]
+
+TASK [Remove httpd package] ****************************************************
+changed: [servera.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+changed: [serverd.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation update-parallelism]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+forks=2
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation update-parallelism]$ 
+[student@workstation update-parallelism]$ vim ansible.cfg
+[student@workstation update-parallelism]$ cat ansible.cfg
+[defaults]
+inventory=inventory
+remote_user=devops
+forks=4
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation update-parallelism]$ 
+[student@workstation update-parallelism]$ 
+[student@workstation update-parallelism]$ cat playbook.yml 
+---
+- name: Update web server
+  hosts: webservers
+  serial: 2
+
+  tasks:
+    - name: Lastest httpd package installed
+      yum:
+        name: httpd
+        state: latest
+      notify:
+        - Restart httpd
+
+  handlers:
+    - name: Restart httpd
+      service:
+        name: httpd
+        enabled: true
+        state: restarted
+
+[student@workstation update-parallelism]$ vim playbook.yml
+[student@workstation update-parallelism]$ cat playbook.yml
+---
+- name: Update web server
+  hosts: webservers
+  serial: 3
+
+  tasks:
+    - name: Lastest httpd package installed
+      yum:
+        name: httpd
+        state: latest
+      notify:
+        - Restart httpd
+
+  handlers:
+    - name: Restart httpd
+      service:
+        name: httpd
+        enabled: true
+        state: restarted
+
+[student@workstation update-parallelism]$ 
+[student@workstation update-parallelism]$ 
+[student@workstation update-parallelism]$ ansible-navigator run -m stdout playbook.yml
+
+PLAY [Update web server] *******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverb.lab.example.com]
+ok: [servera.lab.example.com]
+ok: [serverc.lab.example.com]
+
+TASK [Lastest httpd package installed] *****************************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [servera.lab.example.com]
+
+RUNNING HANDLER [Restart httpd] ************************************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+changed: [servera.lab.example.com]
+
+PLAY [Update web server] *******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverd.lab.example.com]
+
+TASK [Lastest httpd package installed] *****************************************
+changed: [serverd.lab.example.com]
+
+RUNNING HANDLER [Restart httpd] ************************************************
+changed: [serverd.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd.lab.example.com    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation update-parallelism]$ cd
+[student@workstation ~]$ lab finish  update-parallelism 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

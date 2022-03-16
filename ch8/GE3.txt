@@ -1,0 +1,575 @@
+[student@workstation ~]$ lab start update-management 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ mkdir -p ~/git-repos
+[student@workstation ~]$ cd ~/git-repos
+[student@workstation git-repos]$ ls
+data-filters  data-lookups  data-review  develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging  update-delegation  update-parallelism
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/update-management.git
+Cloning into 'update-management'...
+remote: Enumerating objects: 61, done.
+remote: Counting objects: 100% (61/61), done.
+remote: Compressing objects: 100% (42/42), done.
+remote: Total 61 (delta 3), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (61/61), 14.27 KiB | 1.30 MiB/s, done.
+[student@workstation git-repos]$ ls
+data-filters  data-review  develop-review    task-escalation  task-tagging       update-management
+data-lookups  develop-git  inventory-review  task-review      update-delegation  update-parallelism
+[student@workstation git-repos]$ cd update-management/
+[student@workstation update-management]$ ls
+ansible.cfg            collections        deploy_haproxy.yml  group_vars   inventory          README.md                    roles     solutions  update_webapp.yml
+ansible-navigator.yml  deploy_apache.yml  deploy_webapp.yml   haproxy.cfg  issue_requests.sh  remove_haproxy_firewall.yml  site.yml  templates
+[student@workstation update-management]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+collections_paths = ./collections:/usr/share/ansible/collections
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+
+[galaxy]
+server_list = rh-certified_repo, community_repo
+
+[galaxy_server.rh-certified_repo]
+url=https://hub.lab.example.com/api/galaxy/content/rh-certified
+token=59..41
+
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=59..41
+[student@workstation update-management]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation update-management]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+collections_paths = ./collections:/usr/share/ansible/collections
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+
+[galaxy]
+server_list = rh-certified_repo, community_repo
+
+[galaxy_server.rh-certified_repo]
+url=https://hub.lab.example.com/api/galaxy/content/rh-certified
+token=59..41
+
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=59..41
+[student@workstation update-management]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation update-management]$ cat inventory 
+[lb_servers]
+servera.lab.example.com
+
+[web_servers]
+server[b:f].lab.example.com
+
+
+
+[student@workstation update-management]$ firefox https://hub.lab.example.com & 
+[1] 89549
+[student@workstation update-management]$ vim ansible.cfg 
+[student@workstation update-management]$ cat ansible.cfg
+[defaults]
+inventory=inventory
+remote_user=devops
+collections_paths = ./collections:/usr/share/ansible/collections
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+
+[galaxy]
+server_list = rh-certified_repo, community_repo
+
+[galaxy_server.rh-certified_repo]
+url=https://hub.lab.example.com/api/galaxy/content/rh-certified
+token=3c284d7a8e098e64c972acd7abda8f85c3e0c104
+
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=3c284d7a8e098e64c972acd7abda8f85c3e0c104
+[student@workstation update-management]$ 
+[student@workstation update-management]$ ansible-galaxy collection install -r collections/requirements.yml -p collections/
+Starting galaxy collection install process
+Process install dependency map
+Starting collection install process
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/community/community-general-4.3.0.tar.gz to /home/student/.ansible/tmp/ansible-local-898566xml3qxs/tmpbnfweivd/community-general-4.3.0-84jrk8f_
+Installing 'community.general:4.3.0' to '/home/student/git-repos/update-management/collections/ansible_collections/community/general'
+community.general:4.3.0 was installed successfully
+[student@workstation update-management]$ 
+[student@workstation update-management]$ 
+[student@workstation update-management]$ cat collections/requirements.yml 
+---
+collections:
+  - name: community.general
+[student@workstation update-management]$ 
+[student@workstation update-management]$ 
+[student@workstation update-management]$ cat site.yml 
+
+
+- name: Deploy HAProxy
+  import_playbook: deploy_haproxy.yml
+
+- name: Deploy Web Server
+  import_playbook: deploy_apache.yml
+
+- name: Deploy Web App
+  import_playbook: deploy_webapp.yml
+
+[student@workstation update-management]$ ansible-navigator run site.yml 
+[student@workstation update-management]$ curl servera
+serverf: /var/www/html/index.html
+[student@workstation update-management]$ curl servera
+serverb: /var/www/html/index.html
+[student@workstation update-management]$ curl servera
+servere: /var/www/html/index.html
+[student@workstation update-management]$ curl servera
+serverc: /var/www/html/index.html
+[student@workstation update-management]$ curl servera
+serverd: /var/www/html/index.html
+[student@workstation update-management]$ curl servera
+serverf: /var/www/html/index.html
+[student@workstation update-management]$ cat update_webapp.yml 
+---
+- name: Update web servers to use a new document root
+  hosts: web_servers
+  force_handlers: true
+  vars:
+    webapp_content_dir: /srv/web/app/html
+
+  serial:
+    - 1
+    - 25%
+    - 100%
+
+  pre_tasks:
+    - name: Remove web server from service during the update
+      community.general.haproxy:
+        state: disabled
+        backend: app
+        host: "{{ inventory_hostname }}"
+      delegate_to: "{{ item }}"
+      with_items: "{{ groups['lb_servers'] }}"
+
+  roles:
+    - role: apache
+    - role: webapp
+
+  post_tasks:
+    # Firewall rules dictate that requests to backend web
+    # servers must originate from a load balancer.
+    - name: Smoke Test - Ensure HTTP 200 OK
+      uri:
+        url: "http://{{ inventory_hostname }}:{{ apache_port }}"
+        status_code: 200
+      delegate_to: "{{ groups['lb_servers'][0] }}"
+      become: no
+
+    # If the test fails, servers are not re-enabled
+    # in the load balancers, and the update process halts.
+    - name: Enable healthy server in load balancers
+      community.general.haproxy:
+        state: enabled
+        backend: app
+        host: "{{ inventory_hostname }}"
+      delegate_to: "{{ item }}"
+      with_items: "{{ groups['lb_servers'] }}"
+
+[student@workstation update-management]$ vim update_webapp.yml
+[student@workstation update-management]$ ansible-navigator run update_webapp.yml
+[student@workstation update-management]$ for x in {1..5}; do curl servera; done 
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+[student@workstation update-management]$ ansible-navigator run update_webapp.yml
+[student@workstation update-management]$ ssh student@serverb.lab.example.com
+Activate the web console with: systemctl enable --now cockpit.socket
+
+This system is not registered to Red Hat Insights. See https://cloud.redhat.com/
+To register this system, run: insights-client --register
+
+Last login: Mon Mar 14 06:38:48 2022 from 172.25.250.9
+[student@serverb ~]$ ls -l /srv/web/app/
+total 0
+drwxr-xr-x. 2 root root 24 mar 16 05:13 html
+[student@serverb ~]$ ls -l /srv/web/app/html/
+total 4
+-rw-r--r--. 1 root root 38 mar 16 05:13 index.html
+[student@serverb ~]$ ls -Z /srv/web/app/html/index.html 
+system_u:object_r:var_t:s0 /srv/web/app/html/index.html
+[student@serverb ~]$ 
+[student@serverb ~]$ 
+[student@serverb ~]$ ls -lZd /var/www/html/
+drwxr-xr-x. 2 root root system_u:object_r:httpd_sys_content_t:s0 24 mar 16 05:09 /var/www/html/
+[student@serverb ~]$ exit
+logout
+Connection to serverb.lab.example.com closed.
+[student@workstation update-management]$ cat roles/apache/tasks/main.yml 
+---
+# tasks file for apache
+
+- name: Apache Port Check
+  assert:
+    that:
+      - apache_port in apache_standard_ports_list
+    fail_msg: "{{ tmp_msg}}: {{ apache_standard_ports_list }}"
+    success_msg: The specified apache port ({{ apache_port }}) is allowed.
+  vars:
+    tmp_msg: "'apache_port' value ({{ apache_port }}) is not in the list"
+
+- name: Install httpd
+  yum:
+    name:
+      - httpd
+    state: present
+
+- name: Start and enable httpd
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+- name: Customize Apache HTTPD Configuration
+  template:
+    src: templates/httpd.conf.j2
+    dest: /etc/httpd/conf/httpd.conf
+  notify: restart httpd
+
+- name: Ensure that {{ webapp_content_dir }} exists
+  file:
+    path: "{{ webapp_content_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+[student@workstation update-management]$ vim roles/apache/tasks/main.yml
+[student@workstation update-management]$ vim roles/apache/tasks/main.yml
+[student@workstation update-management]$ cat roles/apache/tasks/main.yml
+---
+# tasks file for apache
+
+- name: Apache Port Check
+  assert:
+    that:
+      - apache_port in apache_standard_ports_list
+    fail_msg: "{{ tmp_msg}}: {{ apache_standard_ports_list }}"
+    success_msg: The specified apache port ({{ apache_port }}) is allowed.
+  vars:
+    tmp_msg: "'apache_port' value ({{ apache_port }}) is not in the list"
+
+- name: Install httpd
+  yum:
+    name:
+      - httpd
+    state: present
+
+- name: Start and enable httpd
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+- block: 
+  - name: Set webapp_base fact 
+    set_fact:
+      webapp_base: "{{ webapp_content_dir | split('/') }}"
+
+  - name: Web directory is a subdirectory of /srv
+    assert:
+      that:
+        - webapp_base[0] == ''
+        - webapp_base[1] == 'srv'
+        - webapp_base[2] is defined
+      fail_msg: '"{{ webapp_content_dir }} is not a subdirectory of /srv."'
+      success_msg: '"{{ webapp_content_dir }} is a subdirectory of /srv."'
+
+  - name: Customize Apache HTTPD Configuration
+    template:
+      src: templates/httpd.conf.j2
+      dest: /etc/httpd/conf/httpd.conf
+    notify: restart httpd
+
+  - name: Ensure that {{ webapp_content_dir }} exists
+    file:
+      path: "{{ webapp_content_dir }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+
+  - name: Create SELinux file cotext for the directory
+    include_role: 
+      name: redhat.rhel_system_roles.selinux
+    vars:
+     selinux_fcontexts:
+       - target: "/{{ webapp_base[1] }}/{{ webapp_base[2] }}(/.*)?"
+         setype: "httpd_sys_content_t"
+         state: present
+     selinux_restore_dirs:
+       - /{{ webapp_base[1] }}/{{ webapp_base[2] }}
+  when: "webapp_content_dir != '/var/www/html'"
+[student@workstation update-management]$ 
+[student@workstation update-management]$ 
+[student@workstation update-management]$ cat issue_requests.sh 
+#!/bin/bash
+SERVER=servera.lab.example.com
+WAIT_TIME_SECS=0.5
+LOG_FILE=curl_output.log
+
+rm -f $LOG_FILE
+
+while true; do
+  #Print curl response to stdout and also write to log file.
+  curl -s $SERVER | tee -a $LOG_FILE
+
+  sleep $WAIT_TIME_SECS
+done
+
+[student@workstation update-management]$ ansible-navigator run update_webapp.yml 
+[student@workstation update-management]$ 
+
+
+
+On 2nd terminal
+=========================
+
+
+[student@workstation update-management]$ ./issue_requests.sh 
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverc: /var/www/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /var/www/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /var/www/html/index.html
+serverc: /srv/web/app/html/index.html
+serverf: /var/www/html/index.html
+servere: /var/www/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /srv/web/app/html/index.html
+servere: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverf: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /srv/web/app/html/index.html
+servere: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverf: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /srv/web/app/html/index.html
+servere: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverf: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /srv/web/app/html/index.html
+servere: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverf: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /srv/web/app/html/index.html
+servere: /srv/web/app/html/index.html
+^C
+[student@workstation update-management]$ ./issue_requests.sh 
+serverc: /srv/web/app/html/index.html
+serverf: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /srv/web/app/html/index.html
+servere: /srv/web/app/html/index.html
+serverc: /srv/web/app/html/index.html
+serverf: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /srv/web/app/html/index.html
+servere: /srv/web/app/html/index.html
+^Cserverc: /srv/web/app/html/index.html
+serverf: /srv/web/app/html/index.html
+serverb: /srv/web/app/html/index.html
+serverd: /srv/web/app/html/index.html
+^C
+[student@workstation update-management]$ cd
+[student@workstation ~]$ lab finish update-management 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Ensuring exercise hosts are cleaned ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

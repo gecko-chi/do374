@@ -1,0 +1,132 @@
+[student@workstation ~]$ lab start update-delegation 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Starting the exercise ............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ mkdir -p ~/git-repos/
+[student@workstation ~]$ cd ~/git-repos/
+[student@workstation git-repos]$ ls
+data-filters  data-lookups  data-review  develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging
+[student@workstation git-repos]$ git clone https://gitlab.example.com/git/update-delegation.git
+Cloning into 'update-delegation'...
+fatal: unable to access 'https://gitlab.example.com/git/update-delegation.git/': Could not resolve host: gitlab.example.com
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/update-delegation.git
+Cloning into 'update-delegation'...
+remote: Enumerating objects: 6, done.
+remote: Counting objects: 100% (6/6), done.
+remote: Compressing objects: 100% (6/6), done.
+remote: Total 6 (delta 0), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (6/6), 622 bytes | 622.00 KiB/s, done.
+[student@workstation git-repos]$ ls
+data-filters  data-lookups  data-review  develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging  update-delegation
+[student@workstation git-repos]$ cd update-delegation/
+[student@workstation update-delegation]$ git chekout -b exercise
+git: 'chekout' is not a git command. See 'git --help'.
+
+The most similar command is
+	checkout
+[student@workstation update-delegation]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation update-delegation]$ ls
+ansible.cfg  ansible-navigator.yml  inventory.yml  query_times.yml
+[student@workstation update-delegation]$ cat ansible.cfg 
+[defaults]
+inventory=inventory.yml
+remote_user=devops
+[student@workstation update-delegation]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation update-delegation]$ cat inventory.yml 
+web_servers:
+  hosts:
+    server[a:f].lab.example.com:
+
+[student@workstation update-delegation]$ cat query_times.yml 
+---
+- name: Query server times and store them locally
+  hosts: web_servers
+  gather_facts: false
+
+  tasks:
+[student@workstation update-delegation]$ 
+[student@workstation update-delegation]$ 
+[student@workstation update-delegation]$ vim query_times.yml
+[student@workstation update-delegation]$ cat query_times.yml
+---
+- name: Query server times and store them locally
+  hosts: web_servers
+  gather_facts: false
+
+  tasks:
+    - name: Check the time on server
+      command: date
+      register: date
+      changed_when: false
+    - name: Save server times to workstation
+      lineinfile:
+        path: /tmp/times.txt
+        state: present
+        create: yes
+        insertafter: EOF
+        line: "{{ inventory_hostname }} time: {{ date['stdout_lines'][0] }}"
+      delegate_to: workstation
+[student@workstation update-delegation]$ 
+[student@workstation update-delegation]$ 
+[student@workstation update-delegation]$ ansible-navigator run -m stdout query_times.yml
+
+PLAY [Query server times and store them locally] *******************************
+
+TASK [Check the time on server] ************************************************
+ok: [serverb.lab.example.com]
+ok: [servera.lab.example.com]
+ok: [serverc.lab.example.com]
+ok: [serverd.lab.example.com]
+ok: [servere.lab.example.com]
+ok: [serverf.lab.example.com]
+
+TASK [Save server times to workstation] ****************************************
+changed: [servera.lab.example.com -> workstation]
+changed: [serverb.lab.example.com -> workstation]
+changed: [serverd.lab.example.com -> workstation]
+changed: [servere.lab.example.com -> workstation]
+changed: [serverc.lab.example.com -> workstation]
+changed: [serverf.lab.example.com -> workstation]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverd.lab.example.com    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+servere.lab.example.com    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverf.lab.example.com    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation update-delegation]$ cat /tmp/times.txt 
+serverb.lab.example.com time: mié mar 16 04:37:37 EDT 2022
+servera.lab.example.com time: Wed Mar 16 04:37:37 EDT 2022
+servere.lab.example.com time: Wed Mar 16 04:37:37 EDT 2022
+serverd.lab.example.com time: Wed Mar 16 04:37:37 EDT 2022
+serverc.lab.example.com time: Wed Mar 16 04:37:37 EDT 2022
+serverf.lab.example.com time: Wed Mar 16 04:37:37 EDT 2022
+[student@workstation update-delegation]$ cd
+[student@workstation ~]$ lab finish update-delegation 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+
