@@ -1,0 +1,263 @@
+[student@workstation ~]$ lab start data-loo
+data-lookups  data-loops    
+[student@workstation ~]$ lab start data-lookups 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-minimal-rhel8' container is available ............................................................................................................ SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Preparing systems for the exercise ................................................................................................................................ SUCCESS
+
+[student@workstation ~]$ mkdir -p ~/git-repos/
+[student@workstation ~]$ cd ~/git-repos/
+[student@workstation git-repos]$ ls
+data-filters  develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging
+[student@workstation git-repos]$ git clone https://git.lab.example.com /git/data-lookups.git
+fatal: could not create leading directories of '/git/data-lookups.git': Permission denied
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/data-lookups.git
+Cloning into 'data-lookups'...
+remote: Enumerating objects: 11, done.
+remote: Counting objects: 100% (11/11), done.
+remote: Compressing objects: 100% (9/9), done.
+remote: Total 11 (delta 2), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (11/11), 1.50 KiB | 770.00 KiB/s, done.
+[student@workstation git-repos]$ ls
+data-filters  data-lookups  develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging
+[student@workstation git-repos]$ cd data-lookups/
+[student@workstation data-lookups]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation data-lookups]$ ls
+ansible.cfg  ansible-navigator.yml  clean.yml  groups.yml  inventory  site.yml  solution  users.txt
+[student@workstation data-lookups]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation data-lookups]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: hub.lab.example.com/ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation data-lookups]$ cat clean.yml 
+- name: Remove users and groups
+  hosts: all
+  gather_facts: no
+  tasks:
+
+    - name: Load group information
+      set_fact:
+        user_groups: "{{ lookup('file', 'groups.yml') | from_yaml }}"
+
+    - name: Remove groups
+      group:
+        name: "{{ item.name }}"
+        state: absent
+      loop: "{{ user_groups }}"
+
+    - name: Remove users
+      user:
+        name: "{{ item }}"
+        state: absent
+        remove: yes
+      loop: "{{ query('lines','cat users.txt') }}"
+
+[student@workstation data-lookups]$ cat groups.yml 
+- name: devs
+  members:
+    - jonfoo
+    - janebar
+- name: ops
+  members:
+    - philbaz
+
+[student@workstation data-lookups]$ ls
+ansible.cfg  ansible-navigator.yml  clean.yml  groups.yml  inventory  site.yml  solution  users.txt
+[student@workstation data-lookups]$ cat inventory 
+[all]
+serverf.lab.example.com
+[student@workstation data-lookups]$ cat site.yml 
+- name: Populate users and groups
+  hosts: all
+  gather_facts: no
+  tasks:
+
+    - name: Load group information
+      set_fact:
+        user_groups: "FIXME"
+
+    - name: Create groups
+      group:
+        name: "FIXME"
+        state: present
+      loop: "FIXME"
+
+    - name: Create users
+      debug:
+        msg: "To be done"
+
+    - name: Add users to groups
+      user:
+        name: '{{ item.1 }}'
+        groups: "{{ item.0.name }}"
+        append: yes
+      loop: "{{ user_groups | subelements('members', 'skip_missing=true') }}"
+
+[student@workstation data-lookups]$ cat users.txt 
+jonfoo
+janebar
+philbaz
+[student@workstation data-lookups]$ 
+[student@workstation data-lookups]$ 
+[student@workstation data-lookups]$ cat groups.yml 
+- name: devs
+  members:
+    - jonfoo
+    - janebar
+- name: ops
+  members:
+    - philbaz
+
+[student@workstation data-lookups]$ vim site.yml 
+[student@workstation data-lookups]$ cat site.yml
+- name: Populate users and groups
+  hosts: all
+  gather_facts: no
+  tasks:
+
+    - name: Load group information
+      set_fact:
+        user_groups: "{{ look('file', 'groups.yml') | from_yaml }}"
+
+    - name: Create groups
+      group:
+        name: "{{ item.name }}"
+        state: present
+      loop: "{{ user_groups }}"
+
+    - name: Create users
+      vars:
+        password: "{{ lookup('password', 'credentials/' + item + ' length=9') }}"
+      user:
+        name: "{{ item }}"
+        password: "{{ password | password_hash('sha512') }}"
+        update_password: on_create
+        state: present
+      loop: "{{ query('lines', 'cat users.txt') }}"
+
+    - name: Add users to groups
+      user:
+        name: '{{ item.1 }}'
+        groups: "{{ item.0.name }}"
+        append: yes
+      loop: "{{ user_groups | subelements('members', 'skip_missing=true') }}"
+
+[student@workstation data-lookups]$ ansible-navigator run -m stdout site.yml -i inventory 
+
+PLAY [Populate users and groups] ***********************************************
+
+TASK [Load group information] **************************************************
+fatal: [serverf.lab.example.com]: FAILED! => {"msg": "The task includes an option with an undefined variable. The error was: 'look' is undefined\n\nThe error appears to be in '/home/student/git-repos/data-lookups/site.yml': line 6, column 7, but may\nbe elsewhere in the file depending on the exact syntax problem.\n\nThe offending line appears to be:\n\n\n    - name: Load group information\n      ^ here\n"}
+
+PLAY RECAP *********************************************************************
+serverf.lab.example.com    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+
+[student@workstation data-lookups]$ vim site.yml 
+[student@workstation data-lookups]$ cat site.yml
+- name: Populate users and groups
+  hosts: all
+  gather_facts: no
+  tasks:
+
+    - name: Load group information
+      set_fact:
+        user_groups: "{{ lookup('file', 'groups.yml') | from_yaml }}"
+
+    - name: Create groups
+      group:
+        name: "{{ item.name }}"
+        state: present
+      loop: "{{ user_groups }}"
+
+    - name: Create users
+      vars:
+        password: "{{ lookup('password', 'credentials/' + item + ' length=9') }}"
+      user:
+        name: "{{ item }}"
+        password: "{{ password | password_hash('sha512') }}"
+        update_password: on_create
+        state: present
+      loop: "{{ query('lines', 'cat users.txt') }}"
+
+    - name: Add users to groups
+      user:
+        name: '{{ item.1 }}'
+        groups: "{{ item.0.name }}"
+        append: yes
+      loop: "{{ user_groups | subelements('members', 'skip_missing=true') }}"
+
+[student@workstation data-lookups]$ 
+[student@workstation data-lookups]$ 
+[student@workstation data-lookups]$ ansible-navigator run -m stdout site.yml -i inventory 
+
+PLAY [Populate users and groups] ***********************************************
+
+TASK [Load group information] **************************************************
+ok: [serverf.lab.example.com]
+
+TASK [Create groups] ***********************************************************
+changed: [serverf.lab.example.com] => (item={'name': 'devs', 'members': ['jonfoo', 'janebar']})
+changed: [serverf.lab.example.com] => (item={'name': 'ops', 'members': ['philbaz']})
+
+TASK [Create users] ************************************************************
+changed: [serverf.lab.example.com] => (item=jonfoo)
+changed: [serverf.lab.example.com] => (item=janebar)
+changed: [serverf.lab.example.com] => (item=philbaz)
+
+TASK [Add users to groups] *****************************************************
+changed: [serverf.lab.example.com] => (item=[{'name': 'devs', 'members': ['jonfoo', 'janebar']}, 'jonfoo'])
+changed: [serverf.lab.example.com] => (item=[{'name': 'devs', 'members': ['jonfoo', 'janebar']}, 'janebar'])
+changed: [serverf.lab.example.com] => (item=[{'name': 'ops', 'members': ['philbaz']}, 'philbaz'])
+
+PLAY RECAP *********************************************************************
+serverf.lab.example.com    : ok=4    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation data-lookups]$ ssh jonfoo@serverf "tail -n5 /etc/passwd"
+Warning: Permanently added 'serverf,172.25.250.15' (ECDSA) to the list of known hosts.
+rngd:x:989:985:Random Number Generator Daemon:/var/lib/rngd:/sbin/nologin
+apache:x:48:48:Apache:/usr/share/httpd:/sbin/nologin
+jonfoo:x:1002:1004::/home/jonfoo:/bin/bash
+janebar:x:1003:1005::/home/janebar:/bin/bash
+philbaz:x:1004:1006::/home/philbaz:/bin/bash
+[student@workstation data-lookups]$ 
+[student@workstation data-lookups]$ 
+[student@workstation data-lookups]$ ssh jonfoo@serverf "tail -n5 /etc/group"
+devs:x:1002:jonfoo,janebar
+ops:x:1003:philbaz
+jonfoo:x:1004:
+janebar:x:1005:
+philbaz:x:1006:
+[student@workstation data-lookups]$ cd
+[student@workstation ~]$ lab finish data-lookups 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning servers .................................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

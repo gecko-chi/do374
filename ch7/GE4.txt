@@ -1,0 +1,636 @@
+[student@workstation ~]$ lab start data-netfilters 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Verifying the required packages are installed ..................................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+config-ansible    data-loops       develop-navigator  Downloads          inventory-variables  manage-finding  manage-selecting  Public          Templates
+config-navigator  data-netfilters  develop-practices  git-repos          inventory-yaml       manage-reusing  Music             task-execution  Videos
+config-review     Desktop          Documents          inventory-dynamic  lab_do374            manage-review   Pictures          task-speed
+[student@workstation ~]$ cd data-netfilters/
+[student@workstation data-netfilters]$ ls
+ansible.cfg  ansible-navigator.yml  filtering_data.yml  inventory  site.yml
+[student@workstation data-netfilters]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation data-netfilters]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation data-netfilters]$ cat filtering_data.yml 
+# Complete each task by setting the fact as the expected value.
+# Replace #FIXME# by the appropriate filter usage.
+
+- name: First play for netfilter exercise
+  hosts: servera.lab.example.com
+  become: no
+  vars:
+    listips:
+      - 192.168.2.1
+      - 10.0.0.128/25
+      - 172.24.10.0/255.255.255.0
+      - 172.24.10.0/255.255.255.255
+      - ff02::1
+      - ::1
+      - 2001::1/64
+      - 2001::/64
+      - www.redhat.com
+
+  tasks:
+    - name: 1) Display all addresses
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr }}"
+
+    - name: 2) Use host
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('#FIXME#') }}"
+
+    - name: 3) Use net
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('#FIXME#') }}"
+
+    - name: 4) Use private
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('#FIXME#') }}"
+
+    - name: 5) Use public
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('#FIXME#') }}"
+
+    - name: 6) Use ipwrap
+      debug:
+        msg: "{{ listips | #FIXME# }}"
+
+    - name: 7) Use ipaddr and ipwrap
+      debug:
+        msg: "{{ listips | #FIXME# | ansible.netcommon.ipwrap }}"
+
+[student@workstation data-netfilters]$ cat site.yml 
+# Complete each task by setting the fact as the expected value.
+# Replace #FIXME# by the appropriate filter usage.
+# Tasks make use of the gathered fact 'default_ipv4', and its keys 'address', and 'netmask'.
+
+- name: Second play for netfilter exercise
+  hosts: servera.lab.example.com
+  become: no
+
+  tasks:
+    - name: Set address and network facts
+      set_fact:
+        ipv4_addr: "{{ ansible_facts['default_ipv4']['address'] }}"
+        ipv4_subnet: "{{ ansible_facts['default_ipv4']['netmask'] }}"
+
+    - name: Set facts derived from ipv4_addr and ipv4_subnet
+      set_fact:
+        server_address: "{{ ipv4_addr | #FIXME# }}"
+        ptr_record: "{{ ipv4_addr | #FIXME# }}"
+        net_mask: "{{ ipv4_addr }}/{{ ipv4_subnet }}"
+
+    - name: Set facts derived from net_mask
+      set_fact:
+        cidr: "{{ net_mask | #FIXME# }}"
+        broadcast: "{{ net_mask | #FIXME# }}"
+
+
+    - name: Display server_address
+      debug:
+        msg: server_address is {{ server_address }}
+
+    - name: Display PTR record form for server_address
+      debug:
+        msg: ptr_record is {{ ptr_record }}
+
+    - name: Display address and netmask in VLSM notation
+      debug:
+        msg: net_mask is {{ net_mask }}
+
+    - name: Display address and prefix in CIDR notation
+      debug:
+        msg: cidr is {{ cidr }}
+
+    - name: Display broadcast address for {{ cidr }}
+      debug:
+        msg: broadcast is {{ broadcast }}
+
+    - name: Print addresses on {{ cidr }} from this task's list
+      debug:
+        msg: "{{ item }}" #FIXME#
+      loop:
+        - 172.16.0.1
+        - 172.25.250.4
+        - 192.168.122.20
+        - 192.0.2.55
+[student@workstation data-netfilters]$ cat inventory 
+servers:
+  hosts:
+    server[a:f].lab.example.com
+[student@workstation data-netfilters]$ ansible servera.lab.example.com -m setup -a "filter="ansible_default_ipv4""
+servera.lab.example.com | SUCCESS => {
+    "ansible_facts": {
+        "ansible_default_ipv4": {
+            "address": "172.25.250.10",
+            "alias": "eth0",
+            "broadcast": "172.25.250.255",
+            "gateway": "172.25.250.254",
+            "interface": "eth0",
+            "macaddress": "52:54:00:00:fa:0a",
+            "mtu": 1500,
+            "netmask": "255.255.255.0",
+            "network": "172.25.250.0",
+            "type": "ether"
+        },
+        "discovered_interpreter_python": "/usr/libexec/platform-python"
+    },
+    "changed": false
+}
+[student@workstation data-netfilters]$ vim filtering_data.yml 
+[student@workstation data-netfilters]$ cat filtering_data.yml
+# Complete each task by setting the fact as the expected value.
+# Replace #FIXME# by the appropriate filter usage.
+
+- name: First play for netfilter exercise
+  hosts: servera.lab.example.com
+  become: no
+  vars:
+    listips:
+      - 192.168.2.1
+      - 10.0.0.128/25
+      - 172.24.10.0/255.255.255.0
+      - 172.24.10.0/255.255.255.255
+      - ff02::1
+      - ::1
+      - 2001::1/64
+      - 2001::/64
+      - www.redhat.com
+
+  tasks:
+    - name: 1) Display all addresses
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr }}"
+
+    - name: 2) Use host
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('host') }}"
+
+    - name: 3) Use net
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('net') }}"
+
+    - name: 4) Use private
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('private') }}"
+
+    - name: 5) Use public
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('public') }}"
+
+    - name: 6) Use ipwrap
+      debug:
+        msg: "{{ listips | ansible.netcommin.ipwrap }}"
+
+    - name: 7) Use ipaddr and ipwrap
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr | ansible.netcommon.ipwrap }}"
+
+[student@workstation data-netfilters]$ ansible-navigator run -m stdout filtering_data.yml
+
+PLAY [First play for netfilter exercise] ***************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [servera.lab.example.com]
+
+TASK [1) Display all addresses] ************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "192.168.2.1",
+        "10.0.0.128/25",
+        "172.24.10.0/24",
+        "172.24.10.0/32",
+        "ff02::1",
+        "::1",
+        "2001::1/64",
+        "2001::/64"
+    ]
+}
+
+TASK [2) Use host] *************************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "192.168.2.1/32",
+        "172.24.10.0/32",
+        "ff02::1/128",
+        "::1/128",
+        "2001::1/64"
+    ]
+}
+
+TASK [3) Use net] **************************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "10.0.0.128/25",
+        "172.24.10.0/24",
+        "2001::/64"
+    ]
+}
+
+TASK [4) Use private] **********************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "192.168.2.1",
+        "10.0.0.128/25",
+        "172.24.10.0/255.255.255.0",
+        "172.24.10.0/255.255.255.255"
+    ]
+}
+
+TASK [5) Use public] ***********************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "2001::1/64",
+        "2001::/64"
+    ]
+}
+
+TASK [6) Use ipwrap] ***********************************************************
+[WARNING]: an unexpected error occurred during Jinja2 environment setup: unable
+to locate collection ansible.netcommin
+fatal: [servera.lab.example.com]: FAILED! => {"msg": "template error while templating string: unable to locate collection ansible.netcommin. String: {{ listips | ansible.netcommin.ipwrap }}"}
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=6    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+
+[student@workstation data-netfilters]$ vim filtering_data
+[student@workstation data-netfilters]$ vim filtering_data.yml 
+[student@workstation data-netfilters]$ cat filtering_data.yml
+# Complete each task by setting the fact as the expected value.
+# Replace #FIXME# by the appropriate filter usage.
+
+- name: First play for netfilter exercise
+  hosts: servera.lab.example.com
+  become: no
+  vars:
+    listips:
+      - 192.168.2.1
+      - 10.0.0.128/25
+      - 172.24.10.0/255.255.255.0
+      - 172.24.10.0/255.255.255.255
+      - ff02::1
+      - ::1
+      - 2001::1/64
+      - 2001::/64
+      - www.redhat.com
+
+  tasks:
+    - name: 1) Display all addresses
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr }}"
+
+    - name: 2) Use host
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('host') }}"
+
+    - name: 3) Use net
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('net') }}"
+
+    - name: 4) Use private
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('private') }}"
+
+    - name: 5) Use public
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr('public') }}"
+
+    - name: 6) Use ipwrap
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipwrap }}"
+
+    - name: 7) Use ipaddr and ipwrap
+      debug:
+        msg: "{{ listips | ansible.netcommon.ipaddr | ansible.netcommon.ipwrap }}"
+
+[student@workstation data-netfilters]$ ansible-navigator run -m stdout filtering_data.yml
+
+PLAY [First play for netfilter exercise] ***************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [servera.lab.example.com]
+
+TASK [1) Display all addresses] ************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "192.168.2.1",
+        "10.0.0.128/25",
+        "172.24.10.0/24",
+        "172.24.10.0/32",
+        "ff02::1",
+        "::1",
+        "2001::1/64",
+        "2001::/64"
+    ]
+}
+
+TASK [2) Use host] *************************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "192.168.2.1/32",
+        "172.24.10.0/32",
+        "ff02::1/128",
+        "::1/128",
+        "2001::1/64"
+    ]
+}
+
+TASK [3) Use net] **************************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "10.0.0.128/25",
+        "172.24.10.0/24",
+        "2001::/64"
+    ]
+}
+
+TASK [4) Use private] **********************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "192.168.2.1",
+        "10.0.0.128/25",
+        "172.24.10.0/255.255.255.0",
+        "172.24.10.0/255.255.255.255"
+    ]
+}
+
+TASK [5) Use public] ***********************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "2001::1/64",
+        "2001::/64"
+    ]
+}
+
+TASK [6) Use ipwrap] ***********************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "192.168.2.1",
+        "10.0.0.128/25",
+        "172.24.10.0/255.255.255.0",
+        "172.24.10.0/255.255.255.255",
+        "[ff02::1]",
+        "[::1]",
+        "[2001::1]/64",
+        "[2001::]/64",
+        "www.redhat.com"
+    ]
+}
+
+TASK [7) Use ipaddr and ipwrap] ************************************************
+ok: [servera.lab.example.com] => {
+    "msg": [
+        "192.168.2.1",
+        "10.0.0.128/25",
+        "172.24.10.0/24",
+        "172.24.10.0/32",
+        "[ff02::1]",
+        "[::1]",
+        "[2001::1]/64",
+        "[2001::]/64"
+    ]
+}
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=8    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation data-netfilters]$ ansible-navigator run filtering_data.yml 
+[student@workstation data-netfilters]$ cat site.yml 
+# Complete each task by setting the fact as the expected value.
+# Replace #FIXME# by the appropriate filter usage.
+# Tasks make use of the gathered fact 'default_ipv4', and its keys 'address', and 'netmask'.
+
+- name: Second play for netfilter exercise
+  hosts: servera.lab.example.com
+  become: no
+
+  tasks:
+    - name: Set address and network facts
+      set_fact:
+        ipv4_addr: "{{ ansible_facts['default_ipv4']['address'] }}"
+        ipv4_subnet: "{{ ansible_facts['default_ipv4']['netmask'] }}"
+
+    - name: Set facts derived from ipv4_addr and ipv4_subnet
+      set_fact:
+        server_address: "{{ ipv4_addr | #FIXME# }}"
+        ptr_record: "{{ ipv4_addr | #FIXME# }}"
+        net_mask: "{{ ipv4_addr }}/{{ ipv4_subnet }}"
+
+    - name: Set facts derived from net_mask
+      set_fact:
+        cidr: "{{ net_mask | #FIXME# }}"
+        broadcast: "{{ net_mask | #FIXME# }}"
+
+
+    - name: Display server_address
+      debug:
+        msg: server_address is {{ server_address }}
+
+    - name: Display PTR record form for server_address
+      debug:
+        msg: ptr_record is {{ ptr_record }}
+
+    - name: Display address and netmask in VLSM notation
+      debug:
+        msg: net_mask is {{ net_mask }}
+
+    - name: Display address and prefix in CIDR notation
+      debug:
+        msg: cidr is {{ cidr }}
+
+    - name: Display broadcast address for {{ cidr }}
+      debug:
+        msg: broadcast is {{ broadcast }}
+
+    - name: Print addresses on {{ cidr }} from this task's list
+      debug:
+        msg: "{{ item }}" #FIXME#
+      loop:
+        - 172.16.0.1
+        - 172.25.250.4
+        - 192.168.122.20
+        - 192.0.2.55
+[student@workstation data-netfilters]$ vim site.yml 
+[student@workstation data-netfilters]$ cat site.yml
+# Complete each task by setting the fact as the expected value.
+# Replace #FIXME# by the appropriate filter usage.
+# Tasks make use of the gathered fact 'default_ipv4', and its keys 'address', and 'netmask'.
+
+- name: Second play for netfilter exercise
+  hosts: servera.lab.example.com
+  become: no
+
+  tasks:
+    - name: Set address and network facts
+      set_fact:
+        ipv4_addr: "{{ ansible_facts['default_ipv4']['address'] }}"
+        ipv4_subnet: "{{ ansible_facts['default_ipv4']['netmask'] }}"
+
+    - name: Set facts derived from ipv4_addr and ipv4_subnet
+      set_fact:
+        server_address: "{{ ipv4_addr | ansible.netcommon.ipaddr }}"
+        ptr_record: "{{ ipv4_addr | ansible.netcommon.ipaddr('revdns') }}"
+        net_mask: "{{ ipv4_addr }}/{{ ipv4_subnet }}"
+
+    - name: Set facts derived from net_mask
+      set_fact:
+        cidr: "{{ net_mask | ansible.netcommon.ipaddr('network/prefix') }}"
+        broadcast: "{{ net_mask | ansible.netcommon.ipaddr('broadcast') }}"
+
+
+    - name: Display server_address
+      debug:
+        msg: server_address is {{ server_address }}
+
+    - name: Display PTR record form for server_address
+      debug:
+        msg: ptr_record is {{ ptr_record }}
+
+    - name: Display address and netmask in VLSM notation
+      debug:
+        msg: net_mask is {{ net_mask }}
+
+    - name: Display address and prefix in CIDR notation
+      debug:
+        msg: cidr is {{ cidr }}
+
+    - name: Display broadcast address for {{ cidr }}
+      debug:
+        msg: broadcast is {{ broadcast }}
+
+    - name: Print addresses on {{ cidr }} from this task's list
+      debug:
+        msg: "{{ item | ansible.netcommon.ipaddr(cidr) }}" 
+      loop:
+        - 172.16.0.1
+        - 172.25.250.4
+        - 192.168.122.20
+        - 192.0.2.55
+[student@workstation data-netfilters]$ ansible-navigator run -m stdout site.yml
+
+PLAY [Second play for netfilter exercise] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [servera.lab.example.com]
+
+TASK [Set address and network facts] *******************************************
+ok: [servera.lab.example.com]
+
+TASK [Set facts derived from ipv4_addr and ipv4_subnet] ************************
+ok: [servera.lab.example.com]
+
+TASK [Set facts derived from net_mask] *****************************************
+ok: [servera.lab.example.com]
+
+TASK [Display server_address] **************************************************
+ok: [servera.lab.example.com] => {
+    "msg": "server_address is 172.25.250.10"
+}
+
+TASK [Display PTR record form for server_address] ******************************
+ok: [servera.lab.example.com] => {
+    "msg": "ptr_record is 10.250.25.172.in-addr.arpa."
+}
+
+TASK [Display address and netmask in VLSM notation] ****************************
+ok: [servera.lab.example.com] => {
+    "msg": "net_mask is 172.25.250.10/255.255.255.0"
+}
+
+TASK [Display address and prefix in CIDR notation] *****************************
+[student@workstation data-netfilters]$ 
+[student@workstation data-netfilters]$ 
+[student@workstation data-netfilters]$ 
+[student@workstation data-netfilters]$ 
+[student@workstation data-netfilters]$ ansible-navigator run -m stdout site.yml
+
+PLAY [Second play for netfilter exercise] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [servera.lab.example.com]
+
+TASK [Set address and network facts] *******************************************
+ok: [servera.lab.example.com]
+
+TASK [Set facts derived from ipv4_addr and ipv4_subnet] ************************
+ok: [servera.lab.example.com]
+
+TASK [Set facts derived from net_mask] *****************************************
+ok: [servera.lab.example.com]
+
+TASK [Display server_address] **************************************************
+ok: [servera.lab.example.com] => {
+    "msg": "server_address is 172.25.250.10"
+}
+
+TASK [Display PTR record form for server_address] ******************************
+ok: [servera.lab.example.com] => {
+    "msg": "ptr_record is 10.250.25.172.in-addr.arpa."
+}
+
+TASK [Display address and netmask in VLSM notation] ****************************
+ok: [servera.lab.example.com] => {
+    "msg": "net_mask is 172.25.250.10/255.255.255.0"
+}
+
+TASK [Display address and prefix in CIDR notation] *****************************
+ok: [servera.lab.example.com] => {
+    "msg": "cidr is 172.25.250.0/24"
+}
+
+TASK [Display broadcast address for 172.25.250.0/24] ***************************
+ok: [servera.lab.example.com] => {
+    "msg": "broadcast is 172.25.250.255"
+}
+
+TASK [Print addresses on 172.25.250.0/24 from this task's list] ****************
+ok: [servera.lab.example.com] => (item=172.16.0.1) => {
+    "msg": ""
+}
+ok: [servera.lab.example.com] => (item=172.25.250.4) => {
+    "msg": "172.25.250.4"
+}
+ok: [servera.lab.example.com] => (item=192.168.122.20) => {
+    "msg": ""
+}
+ok: [servera.lab.example.com] => (item=192.0.2.55) => {
+    "msg": ""
+}
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=10   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation data-netfilters]$ ansible-navigator run site.yml
+[student@workstation data-netfilters]$ cd
+[student@workstation ~]$ lab finish data-netfilters 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ 
+

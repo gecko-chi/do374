@@ -1,0 +1,632 @@
+[student@workstation ~]$ lab start data-filters 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+ · Setting up the systems ............................................................................................................................................ SUCCESS
+ · Starting the exercise ............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ mkdir -p ~/git-repos/
+[student@workstation ~]$ cd ~/git-repos/
+[student@workstation git-repos]$ ls
+develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/data-filters.git
+Cloning into 'data-filters'...
+remote: Enumerating objects: 62, done.
+remote: Counting objects: 100% (62/62), done.
+remote: Compressing objects: 100% (45/45), done.
+remote: Total 62 (delta 4), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (62/62), 8.70 KiB | 990.00 KiB/s, done.
+[student@workstation git-repos]$ ls
+data-filters  develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging
+[student@workstation git-repos]$ cd data-filters/
+[student@workstation data-filters]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation data-filters]$ ls
+ansible.cfg  ansible-navigator.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  group_vars  inventory  roles  site.yml
+[student@workstation data-filters]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation data-filters]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation data-filters]$ cat deploy_apache.yml 
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: True
+
+  roles:
+    # The "apache" role has a dependency on the "firewall" role.
+    # The "firewall" role requires a "firewall_rules" variable be defined.
+    - role: apache
+
+[student@workstation data-filters]$ cat deploy_haproxy.yml 
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  force_handlers: True
+
+  roles:
+    # The "haproxy" role has a dependency on the "firewall" role.
+    # The "firewall" role requires a "firewall_rules" variable be defined.
+    - role: haproxy
+
+
+[student@workstation data-filters]$ cat deploy_webapp.yml 
+- name: Ensure Web App is deployed
+  hosts: web_servers
+  gather_facts: no
+
+  roles:
+    - role: webapp
+
+
+[student@workstation data-filters]$ cat inventory 
+[lb_servers]
+loadbalancer_01  ansible_host=servera.lab.example.com
+
+[web_servers]
+webserver_01  ansible_host=serverb.lab.example.com
+webserver_02  ansible_host=serverc.lab.example.com
+
+
+[student@workstation data-filters]$ cat site.yml 
+
+- name: Deploy HAProxy
+  import_playbook: deploy_haproxy.yml
+
+- name: Deploy Web Server
+  import_playbook: deploy_apache.yml
+
+- name: Deploy Web App
+  import_playbook: deploy_webapp.yml
+
+[student@workstation data-filters]$ ls
+ansible.cfg  ansible-navigator.yml  deploy_apache.yml  deploy_haproxy.yml  deploy_webapp.yml  group_vars  inventory  roles  site.yml
+[student@workstation data-filters]$ tree group_vars/
+group_vars/
+├── lb_servers
+│   ├── firewall.yml
+│   └── haproxy.yml
+└── web_servers
+    ├── firewall.yml
+    └── webapp.yml
+
+2 directories, 4 files
+[student@workstation data-filters]$ cat group_vars/lb_servers/firewall.yml 
+firewall_rules:
+  # Allow 80/tcp connections
+  - port: 80/tcp
+
+[student@workstation data-filters]$ cat group_vars/lb_servers/haproxy.yml 
+haproxy_appservers:
+  - name: serverb.lab.example.com
+    ip: 172.25.250.11
+    backend_port: 80
+
+  - name: serverc.lab.example.com
+    ip: 172.25.250.12
+    backend_port: 80
+
+[student@workstation data-filters]$ cat group_vars/web_servers/firewall.yml 
+firewall_rules:
+  # Allow http requests from the load_balancer.
+  - zone: internal
+    service: http
+  - zone: internal
+    source: "172.25.250.10"
+
+
+[student@workstation data-filters]$ cat group_vars/web_servers/webapp.yml 
+webapp_message: "Hello from {{ inventory_hostname }}."
+webapp_version: v1.1
+
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ ansible-navigator run -m stdout deploy_haproxy.yml -i inventory 
+
+PLAY [Ensure HAProxy is deployed] **********************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [loadbalancer_01]
+
+TASK [firewall : Ensure Firewall Sources Configuration] ************************
+changed: [loadbalancer_01] => (item={'port': '80/tcp'})
+
+TASK [haproxy : Ensure haproxy packages are present] ***************************
+changed: [loadbalancer_01]
+
+TASK [haproxy : Ensure haproxy is started and enabled] *************************
+changed: [loadbalancer_01]
+
+TASK [haproxy : Ensure haproxy configuration is set] ***************************
+changed: [loadbalancer_01]
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+changed: [loadbalancer_01]
+
+RUNNING HANDLER [haproxy : reload haproxy] *************************************
+changed: [loadbalancer_01]
+
+PLAY RECAP *********************************************************************
+loadbalancer_01            : ok=7    changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation data-filters]$ curl servera
+<html><body><h1>503 Service Unavailable</h1>
+No server is available to handle this request.
+</body></html>
+[student@workstation data-filters]$ ls roles/
+apache  firewall  haproxy  webapp
+[student@workstation data-filters]$ cat roles/apache/tasks/main.yml 
+---
+# tasks file for apache
+
+- name: Calculate the package list
+  set_fact:
+    # TODO: Combine the apache_base_packages and
+    # apache_optional_packages variables into one list.
+    apache_package_list: "{{ apache_base_packages }}"
+
+- name: Ensure httpd packages are installed
+  yum:
+    name: "{{ apache_package_list }}"
+    state: present
+    #   TODO: omit the 'enablerepo' directive
+    #   below if the apache_enablerepos_list is empty;
+    #   otherwise use the list as the value for the
+    #   'enablerepo' directive.
+    #enablerepo: "{{ apache_enablerepos_list }}"
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: yes
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ cat roles/apache/vars/main.yml 
+
+# Below variable contains the minimal
+#   required packages for apache.
+apache_base_packages:
+  - httpd
+
+[student@workstation data-filters]$ cat roles/apache/defaults/main.yml 
+# Default variables for the apache role.
+
+# The 'apache_additional_packages' variable
+# allows you to specify additional
+# optional packages that must be present on
+# the web server.
+#
+# As an example, to enable a web server
+# to clone a source code repository, and execute a
+# PHP application that connects to a MySQL database:
+#
+# apache_optional_packages:
+#   - php
+#   - git
+#   - php-mysqlnd
+#
+# By default, no optional packages are installed.
+apache_optional_packages: []
+
+
+# Use the 'apache_enablerepos_list'
+#  variable to enable additional yum
+#  repositories for package installation.
+#
+# By default, no additional
+#   repositories are enabled.
+apache_enablerepos_list: []
+
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ cat roles/apache/tasks/main.yml 
+---
+# tasks file for apache
+
+- name: Calculate the package list
+  set_fact:
+    # TODO: Combine the apache_base_packages and
+    # apache_optional_packages variables into one list.
+    apache_package_list: "{{ apache_base_packages }}"
+
+- name: Ensure httpd packages are installed
+  yum:
+    name: "{{ apache_package_list }}"
+    state: present
+    #   TODO: omit the 'enablerepo' directive
+    #   below if the apache_enablerepos_list is empty;
+    #   otherwise use the list as the value for the
+    #   'enablerepo' directive.
+    #enablerepo: "{{ apache_enablerepos_list }}"
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: yes
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+[student@workstation data-filters]$ vim roles/apache/tasks/main.yml
+[student@workstation data-filters]$ cat roles/apache/tasks/main.yml
+---
+# tasks file for apache
+
+- name: Calculate the package list
+  set_fact:
+    apache_package_list: "{{ apache_base_packages | union(apache_optional_packages) }}"
+
+- name: Ensure httpd packages are installed
+  yum:
+    name: "{{ apache_package_list }}"
+    state: present
+    #   TODO: omit the 'enablerepo' directive
+    #   below if the apache_enablerepos_list is empty;
+    #   otherwise use the list as the value for the
+    #   'enablerepo' directive.
+    #enablerepo: "{{ apache_enablerepos_list }}"
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: yes
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ cat group_vars/web_servers/
+firewall.yml  webapp.yml    
+[student@workstation data-filters]$ ls group_vars/web_servers/
+firewall.yml  webapp.yml
+[student@workstation data-filters]$ vim group_vars/web_servers/apache.yml
+[student@workstation data-filters]$ cat group_vars/web_servers/apache.yml
+apache_optional_packages:
+  - git
+  - php
+  - php-mysqlnd
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ cat roles/apache/tasks/main.yml
+---
+# tasks file for apache
+
+- name: Calculate the package list
+  set_fact:
+    apache_package_list: "{{ apache_base_packages | union(apache_optional_packages) }}"
+
+- name: Ensure httpd packages are installed
+  yum:
+    name: "{{ apache_package_list }}"
+    state: present
+    #   TODO: omit the 'enablerepo' directive
+    #   below if the apache_enablerepos_list is empty;
+    #   otherwise use the list as the value for the
+    #   'enablerepo' directive.
+    #enablerepo: "{{ apache_enablerepos_list }}"
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: yes
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+[student@workstation data-filters]$ vim roles/apache/tasks/main.yml
+[student@workstation data-filters]$ cat roles/apache/tasks/main.yml
+---
+# tasks file for apache
+
+- name: Calculate the package list
+  set_fact:
+    apache_package_list: "{{ apache_base_packages | union(apache_optional_packages) }}"
+
+- name: Ensure httpd packages are installed
+  yum:
+    name: "{{ apache_package_list }}"
+    state: present
+    enablerepo: "{{ apache_enablerepos_list | default(omit, true) }}"
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: yes
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ ansible-navigator run -m stdout deploy_apache.yml -i inventory -v 
+Using /home/student/git-repos/data-filters/ansible.cfg as config file
+
+PLAY [Ensure Apache is deployed] ***********************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [webserver_02]
+ok: [webserver_01]
+
+TASK [firewall : Ensure Firewall Sources Configuration] ************************
+changed: [webserver_01] => (item={'zone': 'internal', 'service': 'http'}) => {"ansible_loop_var": "item", "changed": true, "item": {"service": "http", "zone": "internal"}, "msg": "Permanent and Non-Permanent(immediate) operation, Changed service http to enabled"}
+changed: [webserver_02] => (item={'zone': 'internal', 'service': 'http'}) => {"ansible_loop_var": "item", "changed": true, "item": {"service": "http", "zone": "internal"}, "msg": "Permanent and Non-Permanent(immediate) operation, Changed service http to enabled"}
+changed: [webserver_02] => (item={'zone': 'internal', 'source': '172.25.250.10'}) => {"ansible_loop_var": "item", "changed": true, "item": {"source": "172.25.250.10", "zone": "internal"}, "msg": "Permanent and Non-Permanent(immediate) operation, Added 172.25.250.10 to zone internal"}
+changed: [webserver_01] => (item={'zone': 'internal', 'source': '172.25.250.10'}) => {"ansible_loop_var": "item", "changed": true, "item": {"source": "172.25.250.10", "zone": "internal"}, "msg": "Permanent and Non-Permanent(immediate) operation, Added 172.25.250.10 to zone internal"}
+
+TASK [apache : Calculate the package list] *************************************
+ok: [webserver_01] => {"ansible_facts": {"apache_package_list": ["httpd", "git", "php", "php-mysqlnd"]}, "changed": false}
+ok: [webserver_02] => {"ansible_facts": {"apache_package_list": ["httpd", "git", "php", "php-mysqlnd"]}, "changed": false}
+
+TASK [apache : Ensure httpd packages are installed] ****************************
+changed: [webserver_02] => {"changed": true, "msg": "", "rc": 0, "results": ["Installed: php-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: php-pdo-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: php-cli-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: php-common-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: perl-Mozilla-CA-20160104-7.module+el8.3.0+6498+9eecfe51.noarch", "Installed: mod_http2-1.15.7-3.module+el8.4.0+8625+d397f3da.x86_64", "Installed: perl-Git-2.27.0-1.el8.noarch", "Installed: httpd-2.4.37-39.module+el8.4.0+9658+b87b2deb.x86_64", "Installed: php-fpm-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: perl-Net-SSLeay-1.88-1.module+el8.3.0+6446+594cad75.x86_64", "Installed: perl-URI-1.73-3.el8.noarch", "Installed: httpd-tools-2.4.37-39.module+el8.4.0+9658+b87b2deb.x86_64", "Installed: nginx-filesystem-1:1.14.1-9.module+el8.0.0+4108+af250afe.noarch", "Installed: php-mysqlnd-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: perl-Carp-1.42-396.el8.noarch", "Installed: perl-IO-Socket-IP-0.39-5.el8.noarch", "Installed: perl-Data-Dumper-2.167-399.el8.x86_64", "Installed: perl-Digest-1.17-395.el8.noarch", "Installed: perl-Encode-4:2.97-3.el8.x86_64", "Installed: perl-Errno-1.28-419.el8.x86_64", "Installed: perl-Exporter-5.72-396.el8.noarch", "Installed: perl-File-Path-2.15-2.el8.noarch", "Installed: perl-File-Temp-0.230.600-1.el8.noarch", "Installed: perl-Getopt-Long-1:2.50-4.el8.noarch", "Installed: perl-HTTP-Tiny-0.074-1.el8.noarch", "Installed: perl-IO-1.38-419.el8.x86_64", "Installed: perl-Digest-MD5-2.55-396.el8.x86_64", "Installed: perl-IO-Socket-SSL-2.066-4.module+el8.3.0+6446+594cad75.noarch", "Installed: perl-MIME-Base64-3.15-396.el8.x86_64", "Installed: perl-PathTools-3.74-1.el8.x86_64", "Installed: perl-Pod-Escapes-1:1.07-395.el8.noarch", "Installed: perl-Pod-Perldoc-3.28-396.el8.noarch", "Installed: perl-Pod-Simple-1:3.35-395.el8.noarch", "Installed: perl-Pod-Usage-4:1.69-395.el8.noarch", "Installed: perl-Scalar-List-Utils-3:1.49-2.el8.x86_64", "Installed: perl-Socket-4:2.027-3.el8.x86_64", "Installed: perl-Storable-1:3.11-3.el8.x86_64", "Installed: perl-Term-ANSIColor-4.06-396.el8.noarch", "Installed: perl-Term-Cap-1.17-395.el8.noarch", "Installed: perl-libnet-3.11-3.el8.noarch", "Installed: perl-Text-ParseWords-3.30-395.el8.noarch", "Installed: perl-Text-Tabs+Wrap-2013.0523-395.el8.noarch", "Installed: perl-Time-Local-1:1.280-1.el8.noarch", "Installed: perl-Unicode-Normalize-1.25-396.el8.x86_64", "Installed: perl-constant-1.33-396.el8.noarch", "Installed: perl-interpreter-4:5.26.3-419.el8.x86_64", "Installed: perl-Error-1:0.17025-2.el8.noarch", "Installed: perl-libs-4:5.26.3-419.el8.x86_64", "Installed: perl-macros-4:5.26.3-419.el8.x86_64", "Installed: perl-parent-1:0.237-1.el8.noarch", "Installed: perl-podlators-4.11-1.el8.noarch", "Installed: perl-threads-1:2.21-2.el8.x86_64", "Installed: perl-threads-shared-1.58-2.el8.x86_64", "Installed: apr-1.6.3-11.el8.x86_64", "Installed: apr-util-1.6.1-6.el8.x86_64", "Installed: apr-util-bdb-1.6.1-6.el8.x86_64", "Installed: git-2.27.0-1.el8.x86_64", "Installed: git-core-2.27.0-1.el8.x86_64", "Installed: apr-util-openssl-1.6.1-6.el8.x86_64", "Installed: git-core-doc-2.27.0-1.el8.noarch", "Installed: perl-TermReadKey-2.37-7.el8.x86_64", "Installed: redhat-logos-httpd-84.4-1.el8.noarch"]}
+changed: [webserver_01] => {"changed": true, "msg": "", "rc": 0, "results": ["Installed: php-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: php-pdo-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: php-cli-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: php-common-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: perl-Mozilla-CA-20160104-7.module+el8.3.0+6498+9eecfe51.noarch", "Installed: mod_http2-1.15.7-3.module+el8.4.0+8625+d397f3da.x86_64", "Installed: perl-Git-2.27.0-1.el8.noarch", "Installed: httpd-2.4.37-39.module+el8.4.0+9658+b87b2deb.x86_64", "Installed: php-fpm-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: perl-Net-SSLeay-1.88-1.module+el8.3.0+6446+594cad75.x86_64", "Installed: perl-URI-1.73-3.el8.noarch", "Installed: httpd-tools-2.4.37-39.module+el8.4.0+9658+b87b2deb.x86_64", "Installed: nginx-filesystem-1:1.14.1-9.module+el8.0.0+4108+af250afe.noarch", "Installed: php-mysqlnd-7.2.24-1.module+el8.2.0+4601+7c76a223.x86_64", "Installed: perl-Carp-1.42-396.el8.noarch", "Installed: perl-IO-Socket-IP-0.39-5.el8.noarch", "Installed: perl-Data-Dumper-2.167-399.el8.x86_64", "Installed: perl-Digest-1.17-395.el8.noarch", "Installed: perl-Encode-4:2.97-3.el8.x86_64", "Installed: perl-Errno-1.28-419.el8.x86_64", "Installed: perl-Exporter-5.72-396.el8.noarch", "Installed: perl-File-Path-2.15-2.el8.noarch", "Installed: perl-File-Temp-0.230.600-1.el8.noarch", "Installed: perl-Getopt-Long-1:2.50-4.el8.noarch", "Installed: perl-HTTP-Tiny-0.074-1.el8.noarch", "Installed: perl-IO-1.38-419.el8.x86_64", "Installed: perl-Digest-MD5-2.55-396.el8.x86_64", "Installed: perl-IO-Socket-SSL-2.066-4.module+el8.3.0+6446+594cad75.noarch", "Installed: perl-MIME-Base64-3.15-396.el8.x86_64", "Installed: perl-PathTools-3.74-1.el8.x86_64", "Installed: perl-Pod-Escapes-1:1.07-395.el8.noarch", "Installed: perl-Pod-Perldoc-3.28-396.el8.noarch", "Installed: perl-Pod-Simple-1:3.35-395.el8.noarch", "Installed: perl-Pod-Usage-4:1.69-395.el8.noarch", "Installed: perl-Scalar-List-Utils-3:1.49-2.el8.x86_64", "Installed: perl-Socket-4:2.027-3.el8.x86_64", "Installed: perl-Storable-1:3.11-3.el8.x86_64", "Installed: perl-Term-ANSIColor-4.06-396.el8.noarch", "Installed: perl-Term-Cap-1.17-395.el8.noarch", "Installed: perl-libnet-3.11-3.el8.noarch", "Installed: perl-Text-ParseWords-3.30-395.el8.noarch", "Installed: perl-Text-Tabs+Wrap-2013.0523-395.el8.noarch", "Installed: perl-Time-Local-1:1.280-1.el8.noarch", "Installed: perl-Unicode-Normalize-1.25-396.el8.x86_64", "Installed: perl-constant-1.33-396.el8.noarch", "Installed: perl-interpreter-4:5.26.3-419.el8.x86_64", "Installed: perl-Error-1:0.17025-2.el8.noarch", "Installed: perl-libs-4:5.26.3-419.el8.x86_64", "Installed: perl-macros-4:5.26.3-419.el8.x86_64", "Installed: perl-parent-1:0.237-1.el8.noarch", "Installed: perl-podlators-4.11-1.el8.noarch", "Installed: perl-threads-1:2.21-2.el8.x86_64", "Installed: perl-threads-shared-1.58-2.el8.x86_64", "Installed: apr-1.6.3-11.el8.x86_64", "Installed: apr-util-1.6.1-6.el8.x86_64", "Installed: apr-util-bdb-1.6.1-6.el8.x86_64", "Installed: git-2.27.0-1.el8.x86_64", "Installed: git-core-2.27.0-1.el8.x86_64", "Installed: apr-util-openssl-1.6.1-6.el8.x86_64", "Installed: git-core-doc-2.27.0-1.el8.noarch", "Installed: perl-TermReadKey-2.37-7.el8.x86_64", "Installed: redhat-logos-httpd-84.4-1.el8.noarch"]}
+
+TASK [apache : Ensure SELinux allows httpd connections to a remote database] ***
+changed: [webserver_02] => {"changed": true, "name": "httpd_can_network_connect_db", "persistent": true, "state": true}
+changed: [webserver_01] => {"changed": true, "name": "httpd_can_network_connect_db", "persistent": true, "state": true}
+
+TASK [apache : Ensure httpd service is started and enabled] ********************
+changed: [webserver_02] => {"changed": true, "enabled": true, "name": "httpd", "state": "started", "status": {"ActiveEnterTimestampMonotonic": "0", "ActiveExitTimestampMonotonic": "0", "ActiveState": "inactive", "After": "system.slice systemd-tmpfiles-setup.service -.mount nss-lookup.target systemd-journald.socket sysinit.target httpd-init.service tmp.mount basic.target network.target remote-fs.target", "AllowIsolate": "no", "AllowedCPUs": "", "AllowedMemoryNodes": "", "AmbientCapabilities": "", "AssertResult": "no", "AssertTimestampMonotonic": "0", "Before": "shutdown.target", "BlockIOAccounting": "no", "BlockIOWeight": "[not set]", "CPUAccounting": "no", "CPUAffinity": "", "CPUAffinityFromNUMA": "no", "CPUQuotaPerSecUSec": "infinity", "CPUQuotaPeriodUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "[not set]", "CPUUsageNSec": "[not set]", "CPUWeight": "[not set]", "CacheDirectoryMode": "0755", "CanFreeze": "yes", "CanIsolate": "no", "CanReload": "yes", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "cap_chown cap_dac_override cap_dac_read_search cap_fowner cap_fsetid cap_kill cap_setgid cap_setuid cap_setpcap cap_linux_immutable cap_net_bind_service cap_net_broadcast cap_net_admin cap_net_raw cap_ipc_lock cap_ipc_owner cap_sys_module cap_sys_rawio cap_sys_chroot cap_sys_ptrace cap_sys_pacct cap_sys_admin cap_sys_boot cap_sys_nice cap_sys_resource cap_sys_time cap_sys_tty_config cap_mknod cap_lease cap_audit_write cap_audit_control cap_setfcap cap_mac_override cap_mac_admin cap_syslog cap_wake_alarm cap_block_suspend cap_audit_read cap_perfmon", "CollectMode": "inactive", "ConditionResult": "no", "ConditionTimestampMonotonic": "0", "ConfigurationDirectoryMode": "0755", "Conflicts": "shutdown.target", "ControlPID": "0", "DefaultDependencies": "yes", "DefaultMemoryLow": "0", "DefaultMemoryMin": "0", "Delegate": "no", "Description": "The Apache HTTP Server", "DevicePolicy": "auto", "Documentation": "man:httpd.service(8)", "DropInPaths": "/usr/lib/systemd/system/httpd.service.d/php-fpm.conf", "DynamicUser": "no", "EffectiveCPUs": "", "EffectiveMemoryNodes": "", "Environment": "LANG=C", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "0", "ExecMainStartTimestampMonotonic": "0", "ExecMainStatus": "0", "ExecReload": "{ path=/usr/sbin/httpd ; argv[]=/usr/sbin/httpd $OPTIONS -k graceful ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }", "ExecStart": "{ path=/usr/sbin/httpd ; argv[]=/usr/sbin/httpd $OPTIONS -DFOREGROUND ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/httpd.service", "FreezerState": "running", "GID": "[not set]", "GuessMainPID": "yes", "IOAccounting": "no", "IOSchedulingClass": "0", "IOSchedulingPriority": "0", "IOWeight": "[not set]", "IPAccounting": "no", "IPEgressBytes": "18446744073709551615", "IPEgressPackets": "18446744073709551615", "IPIngressBytes": "18446744073709551615", "IPIngressPackets": "18446744073709551615", "Id": "httpd.service", "IgnoreOnIsolate": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestampMonotonic": "0", "InactiveExitTimestampMonotonic": "0", "JobRunningTimeoutUSec": "infinity", "JobTimeoutAction": "none", "JobTimeoutUSec": "infinity", "KeyringMode": "private", "KillMode": "mixed", "KillSignal": "28", "LimitAS": "infinity", "LimitASSoft": "infinity", "LimitCORE": "infinity", "LimitCORESoft": "infinity", "LimitCPU": "infinity", "LimitCPUSoft": "infinity", "LimitDATA": "infinity", "LimitDATASoft": "infinity", "LimitFSIZE": "infinity", "LimitFSIZESoft": "infinity", "LimitLOCKS": "infinity", "LimitLOCKSSoft": "infinity", "LimitMEMLOCK": "65536", "LimitMEMLOCKSoft": "65536", "LimitMSGQUEUE": "819200", "LimitMSGQUEUESoft": "819200", "LimitNICE": "0", "LimitNICESoft": "0", "LimitNOFILE": "262144", "LimitNOFILESoft": "1024", "LimitNPROC": "2874", "LimitNPROCSoft": "2874", "LimitRSS": "infinity", "LimitRSSSoft": "infinity", "LimitRTPRIO": "0", "LimitRTPRIOSoft": "0", "LimitRTTIME": "infinity", "LimitRTTIMESoft": "infinity", "LimitSIGPENDING": "2874", "LimitSIGPENDINGSoft": "2874", "LimitSTACK": "infinity", "LimitSTACKSoft": "8388608", "LoadState": "loaded", "LockPersonality": "no", "LogLevelMax": "-1", "LogRateLimitBurst": "0", "LogRateLimitIntervalUSec": "0", "LogsDirectoryMode": "0755", "MainPID": "0", "MemoryAccounting": "yes", "MemoryCurrent": "[not set]", "MemoryDenyWriteExecute": "no", "MemoryHigh": "infinity", "MemoryLimit": "infinity", "MemoryLow": "0", "MemoryMax": "infinity", "MemoryMin": "0", "MemorySwapMax": "infinity", "MountAPIVFS": "no", "MountFlags": "", "NFileDescriptorStore": "0", "NRestarts": "0", "NUMAMask": "", "NUMAPolicy": "n/a", "Names": "httpd.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "main", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "Perpetual": "no", "PrivateDevices": "no", "PrivateMounts": "no", "PrivateNetwork": "no", "PrivateTmp": "yes", "PrivateUsers": "no", "ProtectControlGroups": "no", "ProtectHome": "no", "ProtectKernelModules": "no", "ProtectKernelTunables": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "RemoveIPC": "no", "Requires": "system.slice sysinit.target -.mount", "RequiresMountsFor": "/var/tmp", "Restart": "no", "RestartUSec": "100ms", "RestrictNamespaces": "no", "RestrictRealtime": "no", "RestrictSUIDSGID": "no", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "RuntimeDirectoryPreserve": "no", "RuntimeMaxUSec": "infinity", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "inherit", "StandardInput": "null", "StandardInputData": "", "StandardOutput": "journal", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitIntervalUSec": "10s", "StartupBlockIOWeight": "[not set]", "StartupCPUShares": "[not set]", "StartupCPUWeight": "[not set]", "StartupIOWeight": "[not set]", "StateChangeTimestampMonotonic": "0", "StateDirectoryMode": "0755", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "dead", "SuccessAction": "none", "SyslogFacility": "3", "SyslogLevel": "6", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "yes", "TasksCurrent": "[not set]", "TasksMax": "4599", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "notify", "UID": "[not set]", "UMask": "0022", "UnitFilePreset": "disabled", "UnitFileState": "disabled", "UtmpMode": "init", "Wants": "httpd-init.service php-fpm.service", "WatchdogTimestampMonotonic": "0", "WatchdogUSec": "0"}}
+changed: [webserver_01] => {"changed": true, "enabled": true, "name": "httpd", "state": "started", "status": {"ActiveEnterTimestampMonotonic": "0", "ActiveExitTimestampMonotonic": "0", "ActiveState": "inactive", "After": "tmp.mount basic.target nss-lookup.target systemd-tmpfiles-setup.service httpd-init.service network.target remote-fs.target -.mount sysinit.target system.slice systemd-journald.socket", "AllowIsolate": "no", "AllowedCPUs": "", "AllowedMemoryNodes": "", "AmbientCapabilities": "", "AssertResult": "no", "AssertTimestampMonotonic": "0", "Before": "shutdown.target", "BlockIOAccounting": "no", "BlockIOWeight": "[not set]", "CPUAccounting": "no", "CPUAffinity": "", "CPUAffinityFromNUMA": "no", "CPUQuotaPerSecUSec": "infinity", "CPUQuotaPeriodUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "[not set]", "CPUUsageNSec": "[not set]", "CPUWeight": "[not set]", "CacheDirectoryMode": "0755", "CanFreeze": "yes", "CanIsolate": "no", "CanReload": "yes", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "cap_chown cap_dac_override cap_dac_read_search cap_fowner cap_fsetid cap_kill cap_setgid cap_setuid cap_setpcap cap_linux_immutable cap_net_bind_service cap_net_broadcast cap_net_admin cap_net_raw cap_ipc_lock cap_ipc_owner cap_sys_module cap_sys_rawio cap_sys_chroot cap_sys_ptrace cap_sys_pacct cap_sys_admin cap_sys_boot cap_sys_nice cap_sys_resource cap_sys_time cap_sys_tty_config cap_mknod cap_lease cap_audit_write cap_audit_control cap_setfcap cap_mac_override cap_mac_admin cap_syslog cap_wake_alarm cap_block_suspend cap_audit_read cap_perfmon", "CollectMode": "inactive", "ConditionResult": "no", "ConditionTimestampMonotonic": "0", "ConfigurationDirectoryMode": "0755", "Conflicts": "shutdown.target", "ControlPID": "0", "DefaultDependencies": "yes", "DefaultMemoryLow": "0", "DefaultMemoryMin": "0", "Delegate": "no", "Description": "The Apache HTTP Server", "DevicePolicy": "auto", "Documentation": "man:httpd.service(8)", "DropInPaths": "/usr/lib/systemd/system/httpd.service.d/php-fpm.conf", "DynamicUser": "no", "EffectiveCPUs": "", "EffectiveMemoryNodes": "", "Environment": "LANG=C", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "0", "ExecMainStartTimestampMonotonic": "0", "ExecMainStatus": "0", "ExecReload": "{ path=/usr/sbin/httpd ; argv[]=/usr/sbin/httpd $OPTIONS -k graceful ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }", "ExecStart": "{ path=/usr/sbin/httpd ; argv[]=/usr/sbin/httpd $OPTIONS -DFOREGROUND ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/httpd.service", "FreezerState": "running", "GID": "[not set]", "GuessMainPID": "yes", "IOAccounting": "no", "IOSchedulingClass": "0", "IOSchedulingPriority": "0", "IOWeight": "[not set]", "IPAccounting": "no", "IPEgressBytes": "18446744073709551615", "IPEgressPackets": "18446744073709551615", "IPIngressBytes": "18446744073709551615", "IPIngressPackets": "18446744073709551615", "Id": "httpd.service", "IgnoreOnIsolate": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestampMonotonic": "0", "InactiveExitTimestampMonotonic": "0", "JobRunningTimeoutUSec": "infinity", "JobTimeoutAction": "none", "JobTimeoutUSec": "infinity", "KeyringMode": "private", "KillMode": "mixed", "KillSignal": "28", "LimitAS": "infinity", "LimitASSoft": "infinity", "LimitCORE": "infinity", "LimitCORESoft": "infinity", "LimitCPU": "infinity", "LimitCPUSoft": "infinity", "LimitDATA": "infinity", "LimitDATASoft": "infinity", "LimitFSIZE": "infinity", "LimitFSIZESoft": "infinity", "LimitLOCKS": "infinity", "LimitLOCKSSoft": "infinity", "LimitMEMLOCK": "65536", "LimitMEMLOCKSoft": "65536", "LimitMSGQUEUE": "819200", "LimitMSGQUEUESoft": "819200", "LimitNICE": "0", "LimitNICESoft": "0", "LimitNOFILE": "262144", "LimitNOFILESoft": "1024", "LimitNPROC": "2874", "LimitNPROCSoft": "2874", "LimitRSS": "infinity", "LimitRSSSoft": "infinity", "LimitRTPRIO": "0", "LimitRTPRIOSoft": "0", "LimitRTTIME": "infinity", "LimitRTTIMESoft": "infinity", "LimitSIGPENDING": "2874", "LimitSIGPENDINGSoft": "2874", "LimitSTACK": "infinity", "LimitSTACKSoft": "8388608", "LoadState": "loaded", "LockPersonality": "no", "LogLevelMax": "-1", "LogRateLimitBurst": "0", "LogRateLimitIntervalUSec": "0", "LogsDirectoryMode": "0755", "MainPID": "0", "MemoryAccounting": "yes", "MemoryCurrent": "[not set]", "MemoryDenyWriteExecute": "no", "MemoryHigh": "infinity", "MemoryLimit": "infinity", "MemoryLow": "0", "MemoryMax": "infinity", "MemoryMin": "0", "MemorySwapMax": "infinity", "MountAPIVFS": "no", "MountFlags": "", "NFileDescriptorStore": "0", "NRestarts": "0", "NUMAMask": "", "NUMAPolicy": "n/a", "Names": "httpd.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "main", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "Perpetual": "no", "PrivateDevices": "no", "PrivateMounts": "no", "PrivateNetwork": "no", "PrivateTmp": "yes", "PrivateUsers": "no", "ProtectControlGroups": "no", "ProtectHome": "no", "ProtectKernelModules": "no", "ProtectKernelTunables": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "RemoveIPC": "no", "Requires": "sysinit.target -.mount system.slice", "RequiresMountsFor": "/var/tmp", "Restart": "no", "RestartUSec": "100ms", "RestrictNamespaces": "no", "RestrictRealtime": "no", "RestrictSUIDSGID": "no", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "RuntimeDirectoryPreserve": "no", "RuntimeMaxUSec": "infinity", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "inherit", "StandardInput": "null", "StandardInputData": "", "StandardOutput": "journal", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitIntervalUSec": "10s", "StartupBlockIOWeight": "[not set]", "StartupCPUShares": "[not set]", "StartupCPUWeight": "[not set]", "StartupIOWeight": "[not set]", "StateChangeTimestampMonotonic": "0", "StateDirectoryMode": "0755", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "dead", "SuccessAction": "none", "SyslogFacility": "3", "SyslogLevel": "6", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "yes", "TasksCurrent": "[not set]", "TasksMax": "4599", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "notify", "UID": "[not set]", "UMask": "0022", "UnitFilePreset": "disabled", "UnitFileState": "disabled", "UtmpMode": "init", "Wants": "php-fpm.service httpd-init.service", "WatchdogTimestampMonotonic": "0", "WatchdogUSec": "0"}}
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+changed: [webserver_02] => {"changed": true, "name": "firewalld", "state": "started", "status": {"ActiveEnterTimestamp": "Wed 2022-03-16 00:26:13 EDT", "ActiveEnterTimestampMonotonic": "9003858", "ActiveExitTimestampMonotonic": "0", "ActiveState": "active", "After": "dbus.service basic.target polkit.service system.slice dbus.socket sysinit.target", "AllowIsolate": "no", "AllowedCPUs": "", "AllowedMemoryNodes": "", "AmbientCapabilities": "", "AssertResult": "yes", "AssertTimestamp": "Wed 2022-03-16 00:26:11 EDT", "AssertTimestampMonotonic": "7706914", "Before": "shutdown.target network-pre.target multi-user.target", "BlockIOAccounting": "no", "BlockIOWeight": "[not set]", "BusName": "org.fedoraproject.FirewallD1", "CPUAccounting": "no", "CPUAffinity": "", "CPUAffinityFromNUMA": "no", "CPUQuotaPerSecUSec": "infinity", "CPUQuotaPeriodUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "[not set]", "CPUUsageNSec": "[not set]", "CPUWeight": "[not set]", "CacheDirectoryMode": "0755", "CanFreeze": "yes", "CanIsolate": "no", "CanReload": "yes", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "cap_chown cap_dac_override cap_dac_read_search cap_fowner cap_fsetid cap_kill cap_setgid cap_setuid cap_setpcap cap_linux_immutable cap_net_bind_service cap_net_broadcast cap_net_admin cap_net_raw cap_ipc_lock cap_ipc_owner cap_sys_module cap_sys_rawio cap_sys_chroot cap_sys_ptrace cap_sys_pacct cap_sys_admin cap_sys_boot cap_sys_nice cap_sys_resource cap_sys_time cap_sys_tty_config cap_mknod cap_lease cap_audit_write cap_audit_control cap_setfcap cap_mac_override cap_mac_admin cap_syslog cap_wake_alarm cap_block_suspend cap_audit_read cap_perfmon", "CollectMode": "inactive", "ConditionResult": "yes", "ConditionTimestamp": "Wed 2022-03-16 00:26:11 EDT", "ConditionTimestampMonotonic": "7706914", "ConfigurationDirectoryMode": "0755", "Conflicts": "ebtables.service nftables.service shutdown.target ip6tables.service ipset.service iptables.service", "ControlGroup": "/system.slice/firewalld.service", "ControlPID": "0", "DefaultDependencies": "yes", "DefaultMemoryLow": "0", "DefaultMemoryMin": "0", "Delegate": "no", "Description": "firewalld - dynamic firewall daemon", "DevicePolicy": "auto", "Documentation": "man:firewalld(1)", "DynamicUser": "no", "EffectiveCPUs": "", "EffectiveMemoryNodes": "", "EnvironmentFiles": "/etc/sysconfig/firewalld (ignore_errors=yes)", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "865", "ExecMainStartTimestamp": "Wed 2022-03-16 00:26:11 EDT", "ExecMainStartTimestampMonotonic": "7710610", "ExecMainStatus": "0", "ExecReload": "{ path=/bin/kill ; argv[]=/bin/kill -HUP $MAINPID ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }", "ExecStart": "{ path=/usr/sbin/firewalld ; argv[]=/usr/sbin/firewalld --nofork --nopid $FIREWALLD_ARGS ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/firewalld.service", "FreezerState": "running", "GID": "[not set]", "GuessMainPID": "yes", "IOAccounting": "no", "IOSchedulingClass": "0", "IOSchedulingPriority": "0", "IOWeight": "[not set]", "IPAccounting": "no", "IPEgressBytes": "18446744073709551615", "IPEgressPackets": "18446744073709551615", "IPIngressBytes": "18446744073709551615", "IPIngressPackets": "18446744073709551615", "Id": "firewalld.service", "IgnoreOnIsolate": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestampMonotonic": "0", "InactiveExitTimestamp": "Wed 2022-03-16 00:26:11 EDT", "InactiveExitTimestampMonotonic": "7710651", "InvocationID": "4ea8a8528da243eb8c517a13194c1eb0", "JobRunningTimeoutUSec": "infinity", "JobTimeoutAction": "none", "JobTimeoutUSec": "infinity", "KeyringMode": "private", "KillMode": "mixed", "KillSignal": "15", "LimitAS": "infinity", "LimitASSoft": "infinity", "LimitCORE": "infinity", "LimitCORESoft": "infinity", "LimitCPU": "infinity", "LimitCPUSoft": "infinity", "LimitDATA": "infinity", "LimitDATASoft": "infinity", "LimitFSIZE": "infinity", "LimitFSIZESoft": "infinity", "LimitLOCKS": "infinity", "LimitLOCKSSoft": "infinity", "LimitMEMLOCK": "65536", "LimitMEMLOCKSoft": "65536", "LimitMSGQUEUE": "819200", "LimitMSGQUEUESoft": "819200", "LimitNICE": "0", "LimitNICESoft": "0", "LimitNOFILE": "262144", "LimitNOFILESoft": "1024", "LimitNPROC": "2874", "LimitNPROCSoft": "2874", "LimitRSS": "infinity", "LimitRSSSoft": "infinity", "LimitRTPRIO": "0", "LimitRTPRIOSoft": "0", "LimitRTTIME": "infinity", "LimitRTTIMESoft": "infinity", "LimitSIGPENDING": "2874", "LimitSIGPENDINGSoft": "2874", "LimitSTACK": "infinity", "LimitSTACKSoft": "8388608", "LoadState": "loaded", "LockPersonality": "no", "LogLevelMax": "-1", "LogRateLimitBurst": "0", "LogRateLimitIntervalUSec": "0", "LogsDirectoryMode": "0755", "MainPID": "865", "MemoryAccounting": "yes", "MemoryCurrent": "35778560", "MemoryDenyWriteExecute": "no", "MemoryHigh": "infinity", "MemoryLimit": "infinity", "MemoryLow": "0", "MemoryMax": "infinity", "MemoryMin": "0", "MemorySwapMax": "infinity", "MountAPIVFS": "no", "MountFlags": "", "NFileDescriptorStore": "0", "NRestarts": "0", "NUMAMask": "", "NUMAPolicy": "n/a", "Names": "firewalld.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "none", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "Perpetual": "no", "PrivateDevices": "no", "PrivateMounts": "no", "PrivateNetwork": "no", "PrivateTmp": "no", "PrivateUsers": "no", "ProtectControlGroups": "no", "ProtectHome": "no", "ProtectKernelModules": "no", "ProtectKernelTunables": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "RemoveIPC": "no", "Requires": "system.slice sysinit.target dbus.socket", "Restart": "no", "RestartUSec": "100ms", "RestrictNamespaces": "no", "RestrictRealtime": "no", "RestrictSUIDSGID": "no", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "RuntimeDirectoryPreserve": "no", "RuntimeMaxUSec": "infinity", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "null", "StandardInput": "null", "StandardInputData": "", "StandardOutput": "null", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitIntervalUSec": "10s", "StartupBlockIOWeight": "[not set]", "StartupCPUShares": "[not set]", "StartupCPUWeight": "[not set]", "StartupIOWeight": "[not set]", "StateChangeTimestamp": "Wed 2022-03-16 00:29:39 EDT", "StateChangeTimestampMonotonic": "214973980", "StateDirectoryMode": "0755", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "running", "SuccessAction": "none", "SyslogFacility": "3", "SyslogLevel": "6", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "yes", "TasksCurrent": "3", "TasksMax": "4599", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "dbus", "UID": "[not set]", "UMask": "0022", "UnitFilePreset": "enabled", "UnitFileState": "enabled", "UtmpMode": "init", "WantedBy": "multi-user.target", "Wants": "network-pre.target", "WatchdogTimestamp": "Wed 2022-03-16 00:26:13 EDT", "WatchdogTimestampMonotonic": "9003856", "WatchdogUSec": "0"}}
+changed: [webserver_01] => {"changed": true, "name": "firewalld", "state": "started", "status": {"ActiveEnterTimestamp": "Wed 2022-03-16 00:26:12 EDT", "ActiveEnterTimestampMonotonic": "8272417", "ActiveExitTimestampMonotonic": "0", "ActiveState": "active", "After": "system.slice polkit.service basic.target sysinit.target dbus.service dbus.socket", "AllowIsolate": "no", "AllowedCPUs": "", "AllowedMemoryNodes": "", "AmbientCapabilities": "", "AssertResult": "yes", "AssertTimestamp": "Wed 2022-03-16 00:26:11 EDT", "AssertTimestampMonotonic": "6952265", "Before": "multi-user.target shutdown.target network-pre.target", "BlockIOAccounting": "no", "BlockIOWeight": "[not set]", "BusName": "org.fedoraproject.FirewallD1", "CPUAccounting": "no", "CPUAffinity": "", "CPUAffinityFromNUMA": "no", "CPUQuotaPerSecUSec": "infinity", "CPUQuotaPeriodUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "[not set]", "CPUUsageNSec": "[not set]", "CPUWeight": "[not set]", "CacheDirectoryMode": "0755", "CanFreeze": "yes", "CanIsolate": "no", "CanReload": "yes", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "cap_chown cap_dac_override cap_dac_read_search cap_fowner cap_fsetid cap_kill cap_setgid cap_setuid cap_setpcap cap_linux_immutable cap_net_bind_service cap_net_broadcast cap_net_admin cap_net_raw cap_ipc_lock cap_ipc_owner cap_sys_module cap_sys_rawio cap_sys_chroot cap_sys_ptrace cap_sys_pacct cap_sys_admin cap_sys_boot cap_sys_nice cap_sys_resource cap_sys_time cap_sys_tty_config cap_mknod cap_lease cap_audit_write cap_audit_control cap_setfcap cap_mac_override cap_mac_admin cap_syslog cap_wake_alarm cap_block_suspend cap_audit_read cap_perfmon", "CollectMode": "inactive", "ConditionResult": "yes", "ConditionTimestamp": "Wed 2022-03-16 00:26:11 EDT", "ConditionTimestampMonotonic": "6952264", "ConfigurationDirectoryMode": "0755", "Conflicts": "iptables.service nftables.service ebtables.service ipset.service shutdown.target ip6tables.service", "ControlGroup": "/system.slice/firewalld.service", "ControlPID": "0", "DefaultDependencies": "yes", "DefaultMemoryLow": "0", "DefaultMemoryMin": "0", "Delegate": "no", "Description": "firewalld - dynamic firewall daemon", "DevicePolicy": "auto", "Documentation": "man:firewalld(1)", "DynamicUser": "no", "EffectiveCPUs": "", "EffectiveMemoryNodes": "", "EnvironmentFiles": "/etc/sysconfig/firewalld (ignore_errors=yes)", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "868", "ExecMainStartTimestamp": "Wed 2022-03-16 00:26:11 EDT", "ExecMainStartTimestampMonotonic": "6955888", "ExecMainStatus": "0", "ExecReload": "{ path=/bin/kill ; argv[]=/bin/kill -HUP $MAINPID ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }", "ExecStart": "{ path=/usr/sbin/firewalld ; argv[]=/usr/sbin/firewalld --nofork --nopid $FIREWALLD_ARGS ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/firewalld.service", "FreezerState": "running", "GID": "[not set]", "GuessMainPID": "yes", "IOAccounting": "no", "IOSchedulingClass": "0", "IOSchedulingPriority": "0", "IOWeight": "[not set]", "IPAccounting": "no", "IPEgressBytes": "18446744073709551615", "IPEgressPackets": "18446744073709551615", "IPIngressBytes": "18446744073709551615", "IPIngressPackets": "18446744073709551615", "Id": "firewalld.service", "IgnoreOnIsolate": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestampMonotonic": "0", "InactiveExitTimestamp": "Wed 2022-03-16 00:26:11 EDT", "InactiveExitTimestampMonotonic": "6955938", "InvocationID": "3594de50b1954a2c827e663ccef5157b", "JobRunningTimeoutUSec": "infinity", "JobTimeoutAction": "none", "JobTimeoutUSec": "infinity", "KeyringMode": "private", "KillMode": "mixed", "KillSignal": "15", "LimitAS": "infinity", "LimitASSoft": "infinity", "LimitCORE": "infinity", "LimitCORESoft": "infinity", "LimitCPU": "infinity", "LimitCPUSoft": "infinity", "LimitDATA": "infinity", "LimitDATASoft": "infinity", "LimitFSIZE": "infinity", "LimitFSIZESoft": "infinity", "LimitLOCKS": "infinity", "LimitLOCKSSoft": "infinity", "LimitMEMLOCK": "65536", "LimitMEMLOCKSoft": "65536", "LimitMSGQUEUE": "819200", "LimitMSGQUEUESoft": "819200", "LimitNICE": "0", "LimitNICESoft": "0", "LimitNOFILE": "262144", "LimitNOFILESoft": "1024", "LimitNPROC": "2874", "LimitNPROCSoft": "2874", "LimitRSS": "infinity", "LimitRSSSoft": "infinity", "LimitRTPRIO": "0", "LimitRTPRIOSoft": "0", "LimitRTTIME": "infinity", "LimitRTTIMESoft": "infinity", "LimitSIGPENDING": "2874", "LimitSIGPENDINGSoft": "2874", "LimitSTACK": "infinity", "LimitSTACKSoft": "8388608", "LoadState": "loaded", "LockPersonality": "no", "LogLevelMax": "-1", "LogRateLimitBurst": "0", "LogRateLimitIntervalUSec": "0", "LogsDirectoryMode": "0755", "MainPID": "868", "MemoryAccounting": "yes", "MemoryCurrent": "33390592", "MemoryDenyWriteExecute": "no", "MemoryHigh": "infinity", "MemoryLimit": "infinity", "MemoryLow": "0", "MemoryMax": "infinity", "MemoryMin": "0", "MemorySwapMax": "infinity", "MountAPIVFS": "no", "MountFlags": "", "NFileDescriptorStore": "0", "NRestarts": "0", "NUMAMask": "", "NUMAPolicy": "n/a", "Names": "firewalld.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "none", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "Perpetual": "no", "PrivateDevices": "no", "PrivateMounts": "no", "PrivateNetwork": "no", "PrivateTmp": "no", "PrivateUsers": "no", "ProtectControlGroups": "no", "ProtectHome": "no", "ProtectKernelModules": "no", "ProtectKernelTunables": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "RemoveIPC": "no", "Requires": "dbus.socket system.slice sysinit.target", "Restart": "no", "RestartUSec": "100ms", "RestrictNamespaces": "no", "RestrictRealtime": "no", "RestrictSUIDSGID": "no", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "RuntimeDirectoryPreserve": "no", "RuntimeMaxUSec": "infinity", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "null", "StandardInput": "null", "StandardInputData": "", "StandardOutput": "null", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitIntervalUSec": "10s", "StartupBlockIOWeight": "[not set]", "StartupCPUShares": "[not set]", "StartupCPUWeight": "[not set]", "StartupIOWeight": "[not set]", "StateChangeTimestamp": "Wed 2022-03-16 00:29:39 EDT", "StateChangeTimestampMonotonic": "214936330", "StateDirectoryMode": "0755", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "running", "SuccessAction": "none", "SyslogFacility": "3", "SyslogLevel": "6", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "yes", "TasksCurrent": "3", "TasksMax": "4599", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "dbus", "UID": "[not set]", "UMask": "0022", "UnitFilePreset": "enabled", "UnitFileState": "enabled", "UtmpMode": "init", "WantedBy": "multi-user.target", "Wants": "network-pre.target", "WatchdogTimestamp": "Wed 2022-03-16 00:26:12 EDT", "WatchdogTimestampMonotonic": "8272415", "WatchdogUSec": "0"}}
+
+PLAY RECAP *********************************************************************
+webserver_01               : ok=7    changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+webserver_02               : ok=7    changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation data-filters]$ cat roles/webapp/tasks/main.yml m
+---
+# tasks file for webapp
+
+- name: Ensure stub web content is deployed
+  copy:
+    content: "{{ webapp_message }} (version {{ webapp_version }})\n"
+    dest: "{{ webapp_content_root_dir }}/index.html"
+
+- name: Find deployed webapp files
+  find:
+    paths: "{{ webapp_content_root_dir }}"
+    recurse: yes
+  register: webapp_find_files
+
+- name: Compute the webapp file list
+  set_fact:
+    # TODO: Use the map filter to extract
+    # the 'path' attribute of each entry
+    # in the 'webapp_find_files'
+    # variable 'files' list.
+    webapp_deployed_files: []
+
+- name: Compute the relative webapp file list
+  set_fact:
+    # TODO: Use the 'map' filter, along with
+    # the 'relpath' filter, to create the
+    # 'webapp_rel_deployed_files' variable
+    # from the 'webapp_deployed_files' variable.
+    #
+    # Files in the 'webapp_rel_deployed_files'
+    # variable should have a path relative to
+    # the 'webapp_content_root_dir' variable.
+    webapp_rel_deployed_files: []
+
+- name: Remove Extraneous Files
+  file:
+    path: "{{ webapp_content_root_dir }}/{{ item }}"
+    state: absent
+  # TODO: Loop over a list of files
+  # that are in the 'webapp_rel_deployed_files'
+  # list, but not in the 'webapp_file_list' list.
+  # Use the difference filter.
+  loop: []
+
+
+cat: m: No such file or directory
+[student@workstation data-filters]$ cat roles/webapp/tasks/main.yml
+---
+# tasks file for webapp
+
+- name: Ensure stub web content is deployed
+  copy:
+    content: "{{ webapp_message }} (version {{ webapp_version }})\n"
+    dest: "{{ webapp_content_root_dir }}/index.html"
+
+- name: Find deployed webapp files
+  find:
+    paths: "{{ webapp_content_root_dir }}"
+    recurse: yes
+  register: webapp_find_files
+
+- name: Compute the webapp file list
+  set_fact:
+    # TODO: Use the map filter to extract
+    # the 'path' attribute of each entry
+    # in the 'webapp_find_files'
+    # variable 'files' list.
+    webapp_deployed_files: []
+
+- name: Compute the relative webapp file list
+  set_fact:
+    # TODO: Use the 'map' filter, along with
+    # the 'relpath' filter, to create the
+    # 'webapp_rel_deployed_files' variable
+    # from the 'webapp_deployed_files' variable.
+    #
+    # Files in the 'webapp_rel_deployed_files'
+    # variable should have a path relative to
+    # the 'webapp_content_root_dir' variable.
+    webapp_rel_deployed_files: []
+
+- name: Remove Extraneous Files
+  file:
+    path: "{{ webapp_content_root_dir }}/{{ item }}"
+    state: absent
+  # TODO: Loop over a list of files
+  # that are in the 'webapp_rel_deployed_files'
+  # list, but not in the 'webapp_file_list' list.
+  # Use the difference filter.
+  loop: []
+
+
+[student@workstation data-filters]$ 
+[student@workstation data-filters]$ cat roles/webapp/tasks/main.yml
+---
+# tasks file for webapp
+
+- name: Ensure stub web content is deployed
+  copy:
+    content: "{{ webapp_message }} (version {{ webapp_version }})\n"
+    dest: "{{ webapp_content_root_dir }}/index.html"
+
+- name: Find deployed webapp files
+  find:
+    paths: "{{ webapp_content_root_dir }}"
+    recurse: yes
+  register: webapp_find_files
+
+- name: Compute the webapp file list
+  set_fact:
+    # TODO: Use the map filter to extract
+    # the 'path' attribute of each entry
+    # in the 'webapp_find_files'
+    # variable 'files' list.
+    webapp_deployed_files: []
+
+- name: Compute the relative webapp file list
+  set_fact:
+    # TODO: Use the 'map' filter, along with
+    # the 'relpath' filter, to create the
+    # 'webapp_rel_deployed_files' variable
+    # from the 'webapp_deployed_files' variable.
+    #
+    # Files in the 'webapp_rel_deployed_files'
+    # variable should have a path relative to
+    # the 'webapp_content_root_dir' variable.
+    webapp_rel_deployed_files: []
+
+- name: Remove Extraneous Files
+  file:
+    path: "{{ webapp_content_root_dir }}/{{ item }}"
+    state: absent
+  # TODO: Loop over a list of files
+  # that are in the 'webapp_rel_deployed_files'
+  # list, but not in the 'webapp_file_list' list.
+  # Use the difference filter.
+  loop: []
+
+
+[student@workstation data-filters]$ vim roles/webapp/tasks/main.yml
+[student@workstation data-filters]$ cat roles/webapp/tasks/main.yml
+---
+# tasks file for webapp
+
+- name: Ensure stub web content is deployed
+  copy:
+    content: "{{ webapp_message }} (version {{ webapp_version }})\n"
+    dest: "{{ webapp_content_root_dir }}/index.html"
+
+- name: Find deployed webapp files
+  find:
+    paths: "{{ webapp_content_root_dir }}"
+    recurse: yes
+  register: webapp_find_files
+
+- name: Compute the webapp file list
+  set_fact:
+    webapp_deployed_files: "{{ webapp_find_files['files'] | map(attribute='path')| list }}"
+
+- name: Compute the relative webapp file list
+  set_fact:
+    webapp_rel_deployed_files: "{{ webapp_deployed_files | map('relpath', webapp_content_root_dir) | list }}"
+
+- name: Remove Extraneous Files
+  file:
+    path: "{{ webapp_content_root_dir }}/{{ item }}"
+    state: absent
+  loop: "{{ webapp_rel_deployed_files | difference(webapp_file_list) }}"
+
+
+[student@workstation data-filters]$ ansible-navigator run -m stdout deploy_webapp.yml -i inventory -v 
+Using /home/student/git-repos/data-filters/ansible.cfg as config file
+
+PLAY [Ensure Web App is deployed] **********************************************
+
+TASK [webapp : Ensure stub web content is deployed] ****************************
+changed: [webserver_02] => {"ansible_facts": {"discovered_interpreter_python": "/usr/libexec/platform-python"}, "changed": true, "checksum": "37d2acb6f6b8a2e5813c86fbe164ab7590bc3f08", "dest": "/var/www/html/index.html", "gid": 0, "group": "root", "md5sum": "df2631aacf025f1f9e83168a84d9aca9", "mode": "0644", "owner": "root", "secontext": "system_u:object_r:httpd_sys_content_t:s0", "size": 40, "src": "/home/devops/.ansible/tmp/ansible-tmp-1647406320.611448-32-235723960291122/source", "state": "file", "uid": 0}
+changed: [webserver_01] => {"ansible_facts": {"discovered_interpreter_python": "/usr/libexec/platform-python"}, "changed": true, "checksum": "b8ed97d992258365d2775812b44310d191623f72", "dest": "/var/www/html/index.html", "gid": 0, "group": "root", "md5sum": "98c4b4cd2ff0e775c7390cd4ef6abe89", "mode": "0644", "owner": "root", "secontext": "system_u:object_r:httpd_sys_content_t:s0", "size": 40, "src": "/home/devops/.ansible/tmp/ansible-tmp-1647406320.588223-30-29605548566402/source", "state": "file", "uid": 0}
+
+TASK [webapp : Find deployed webapp files] *************************************
+ok: [webserver_02] => {"changed": false, "examined": 1, "files": [{"atime": 1647406321.845339, "ctime": 1647406321.8523393, "dev": 64515, "gid": 0, "gr_name": "root", "inode": 9058194, "isblk": false, "ischr": false, "isdir": false, "isfifo": false, "isgid": false, "islnk": false, "isreg": true, "issock": false, "isuid": false, "mode": "0644", "mtime": 1647406321.3263319, "nlink": 1, "path": "/var/www/html/index.html", "pw_name": "root", "rgrp": true, "roth": true, "rusr": true, "size": 40, "uid": 0, "wgrp": false, "woth": false, "wusr": true, "xgrp": false, "xoth": false, "xusr": false}], "matched": 1, "msg": ""}
+ok: [webserver_01] => {"changed": false, "examined": 2, "files": [{"atime": 1647404985.1958442, "ctime": 1647404985.2028444, "dev": 64515, "gid": 0, "gr_name": "root", "inode": 8400034, "isblk": false, "ischr": false, "isdir": false, "isfifo": false, "isgid": false, "islnk": false, "isreg": true, "issock": false, "isuid": false, "mode": "0644", "mtime": 1647404984.747837, "nlink": 1, "path": "/var/www/html/test.html", "pw_name": "root", "rgrp": true, "roth": true, "rusr": true, "size": 10, "uid": 0, "wgrp": false, "woth": false, "wusr": true, "xgrp": false, "xoth": false, "xusr": false}, {"atime": 1647406321.8676496, "ctime": 1647406321.8756497, "dev": 64515, "gid": 0, "gr_name": "root", "inode": 22718, "isblk": false, "ischr": false, "isdir": false, "isfifo": false, "isgid": false, "islnk": false, "isreg": true, "issock": false, "isuid": false, "mode": "0644", "mtime": 1647406321.3266418, "nlink": 1, "path": "/var/www/html/index.html", "pw_name": "root", "rgrp": true, "roth": true, "rusr": true, "size": 40, "uid": 0, "wgrp": false, "woth": false, "wusr": true, "xgrp": false, "xoth": false, "xusr": false}], "matched": 2, "msg": ""}
+
+TASK [webapp : Compute the webapp file list] ***********************************
+ok: [webserver_02] => {"ansible_facts": {"webapp_deployed_files": ["/var/www/html/index.html"]}, "changed": false}
+ok: [webserver_01] => {"ansible_facts": {"webapp_deployed_files": ["/var/www/html/test.html", "/var/www/html/index.html"]}, "changed": false}
+
+TASK [webapp : Compute the relative webapp file list] **************************
+ok: [webserver_01] => {"ansible_facts": {"webapp_rel_deployed_files": ["test.html", "index.html"]}, "changed": false}
+ok: [webserver_02] => {"ansible_facts": {"webapp_rel_deployed_files": ["index.html"]}, "changed": false}
+
+TASK [webapp : Remove Extraneous Files] ****************************************
+changed: [webserver_01] => (item=test.html) => {"ansible_loop_var": "item", "changed": true, "item": "test.html", "path": "/var/www/html/test.html", "state": "absent"}
+
+PLAY RECAP *********************************************************************
+webserver_01               : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+webserver_02               : ok=4    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+[student@workstation data-filters]$ cd
+[student@workstation ~]$ lab finish data-filters 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

@@ -1,0 +1,715 @@
+[student@workstation ~]$ lab start data-review 
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Starting the exercise ............................................................................................................................................. SUCCESS
+
+[student@workstation ~]$ mkdir -p ~/git-repos/
+[student@workstation ~]$ cd ~/git-repos/
+[student@workstation git-repos]$ ls
+data-filters  data-lookups  develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging
+[student@workstation git-repos]$ 
+[student@workstation git-repos]$ 
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/data-review.git
+Cloning into 'data-review'...
+remote: Enumerating objects: 75, done.
+remote: Counting objects: 100% (75/75), done.
+remote: Compressing objects: 100% (47/47), done.
+remote: Total 75 (delta 4), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (75/75), 14.18 KiB | 1.18 MiB/s, done.
+[student@workstation git-repos]$ ls
+data-filters  data-lookups  data-review  develop-git  develop-review  inventory-review  task-escalation  task-review  task-tagging
+[student@workstation git-repos]$ cd data-review/
+[student@workstation data-review]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation data-review]$ ls
+ansible.cfg            deploy_apache.yml   deploy_webapp.yml  inventory                    roles     site.yml   test_firewall_role.yml
+ansible-navigator.yml  deploy_haproxy.yml  group_vars         remove_haproxy_firewall.yml  setup.sh  templates
+[student@workstation data-review]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation data-review]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation data-review]$ cat deploy_apache.yml 
+---
+
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  gather_facts: no
+
+  roles:
+    # Use the apache_firewall_rules.yml.j2 template to
+    # generate the firewall rules.
+    # Remove the two current list items from the firewall_rules
+    # variable definition and set its value with a Jinja2
+    # template of the form:
+    # firewall_rules: "{{ plugin | filter }}"
+    - role: apache
+      firewall_rules:
+        # HTTP requests from the internal zone
+        - zone: internal
+          service: http
+
+        # Load balancer IP access from the internal zone
+        - zone: internal
+          source: 172.25.250.10
+
+[student@workstation data-review]$ cat deploy_haproxy.yml 
+---
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  force_handlers: true
+  roles:
+    # The "haproxy" role has a dependency on the "firewall"
+    # role.  the "firewall" role requires a "firewall_rules"
+    # variable be defined.
+    - role: haproxy
+      haproxy_backend_port: "{{ apache_port }}"
+      haproxy_backend_pool: "{{ groups['web_servers'] }}"
+
+
+[student@workstation data-review]$ ls
+ansible.cfg            deploy_apache.yml   deploy_webapp.yml  inventory                    roles     site.yml   test_firewall_role.yml
+ansible-navigator.yml  deploy_haproxy.yml  group_vars         remove_haproxy_firewall.yml  setup.sh  templates
+[student@workstation data-review]$ cat deploy_webapp.yml 
+---
+
+- name: Ensure Web App is deployed
+  hosts: web_servers
+  vars:
+    - webapp_version: v1.0
+
+  roles:
+    - role: webapp
+
+
+[student@workstation data-review]$ ls group_vars/
+all  lb_servers  web_servers
+[student@workstation data-review]$ ls group_vars/all/
+apache.yml  haproxy.yml
+[student@workstation data-review]$ cat group_vars/all/apache.yml 
+
+
+apache_port: 8008
+
+[student@workstation data-review]$ cat group_vars/all/haproxy.yml 
+# All servers may need to know the port
+# that clients use to connect to haproxy.
+haproxy_port: 80
+[student@workstation data-review]$ cat group_vars/lb_servers/
+firewall.yml  haproxy.yml   
+[student@workstation data-review]$ cat group_vars/lb_servers/firewall.yml 
+
+# One firewall rule; enable client-facing port.
+firewall_rules:
+  - port: "{{ haproxy_port }}"
+
+
+[student@workstation data-review]$ cat group_vars/lb_servers/haproxy.yml 
+# defaults file for haproxy
+
+# Log-level for HAProxy logs
+haproxy_log_level: info
+
+# Port exposed to clients
+# haproxy_port: 80
+# Defined in all/haproxy.yml
+
+#Port of backend apache server
+haproxy_backend_port: 8081
+
+# The appservers variable is a list
+# of backend servers that provide
+# the web service that is proxied
+# haproxy.  Each server must define:
+# name, address, port. Below is
+# and example structure:
+
+#appservers:
+#  - name: serverb.lab.example.com
+#    ip_address: 1.2.3.4
+#    port: 5000
+#  - name: serverc.lab.example.com
+#    ip_address: 1.2.3.5
+#    port: 5000
+
+#The default is no defined backend servers.
+appservers: []
+#appservers:
+#  - name: servera.lab.example.com
+#    port: 80
+#  - name: serverb.lab.example.com
+#    port: 80
+
+[student@workstation data-review]$ ls group_vars/
+all  lb_servers  web_servers
+[student@workstation data-review]$ cat group_vars/web_servers/firewall.yml 
+# The firewall_rules variable is not defined here,
+# but in the "deploy_apache.yml" playbook.
+#
+# That playbook generates a list of rules based
+# other project variables and facts.
+#
+# As an example, a firewall rule is generated
+# to allow requests from the load balancers.
+#
+# Because this configuration is potentially dynamic,
+# it is not included here.
+[student@workstation data-review]$ ls 
+ansible.cfg            deploy_apache.yml   deploy_webapp.yml  inventory                    roles     site.yml   test_firewall_role.yml
+ansible-navigator.yml  deploy_haproxy.yml  group_vars         remove_haproxy_firewall.yml  setup.sh  templates
+[student@workstation data-review]$ cat inventory 
+[lb_servers]
+servera.lab.example.com
+
+[web_servers]
+serverb.lab.example.com
+serverc.lab.example.com
+
+
+
+[student@workstation data-review]$ cat remove_haproxy_firewall.yml 
+---
+
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  roles:
+
+    - role: firewall
+      firewall_rules:
+        - port: "{{ haproxy_port }}"
+          protocol: tcp
+          state: disabled
+
+
+[student@workstation data-review]$ ls roles/
+apache  firewall  haproxy  webapp
+[student@workstation data-review]$ cat setup.sh 
+sudo yum install python3-dns python3-netaddr
+
+[student@workstation data-review]$ cat site.yml 
+- name: Gather facts
+  hosts: all
+  gather_facts: true
+
+- name: Deploy HAProxy
+  import_playbook: deploy_haproxy.yml
+
+- name: Deploy Web Server
+  import_playbook: deploy_apache.yml
+
+- name: Deploy Web App
+  import_playbook: deploy_webapp.yml
+
+[student@workstation data-review]$ cat test_firewall_role.yml 
+---
+- name: Test Firewall Role
+  hosts: web_servers
+  roles:
+    - role: firewall
+      firewall_rules:
+        - port: "{{ apache_port }}"
+          protocol: TCP
+          zone: internal
+        - zone: internal
+          source: 172.25.250.10
+        - service: ftp
+          state: disabled
+
+
+[student@workstation data-review]$ ls 
+ansible.cfg            deploy_apache.yml   deploy_webapp.yml  inventory                    roles     site.yml   test_firewall_role.yml
+ansible-navigator.yml  deploy_haproxy.yml  group_vars         remove_haproxy_firewall.yml  setup.sh  templates
+[student@workstation data-review]$ ls templates/
+apache_firewall_rules.yml.j2
+[student@workstation data-review]$ cat templates/apache_firewall_rules.yml.j2
+#Constructing the value of the
+# firewall_rules variable for the
+# firewall role.
+
+- port: {{ apache_port }}
+  protocol: TCP
+  zone: internal
+{% for load_balancer in groups['lb_servers'] %}
+- zone: internal
+  source: "{{ load_balancer_ip_addr }}"
+{% endfor %}
+[student@workstation data-review]$ 
+[student@workstation data-review]$ 
+[student@workstation data-review]$ 
+[student@workstation data-review]$ tree  roles/firewall/
+roles/firewall/
+├── defaults
+│   └── main.yml
+├── handlers
+│   └── main.yml
+├── meta
+│   └── main.yml
+└── tasks
+    └── main.yml
+
+4 directories, 4 files
+[student@workstation data-review]$ cat roles/firewall/tasks/main.yml 
+---
+# tasks file for firewall
+
+- name: Ensure Firewall Sources Configuration
+  firewalld:
+    source: "{{ item.source }}"
+    zone: "{{ item.zone }}"
+    permanent: yes
+    state: "{{ item.state }}"
+  loop: "{{ firewall_rules }}"
+  when: item.source is defined
+  notify: reload firewalld
+
+- name: Ensure Firewall Service Configuration
+  firewalld:
+    service: "{{ item.service }}"
+    zone: "{{ item.zone }}"
+    permanent: yes
+    state: "{{ item.state }}"
+  loop: "{{ firewall_rules }}"
+  when: item.service is defined
+  notify: reload firewalld
+
+- name: Ensure Firewall Port Configuration
+  firewalld:
+    port: "{{ item.port }}/{{ item.protocol }}"
+    zone: "{{ item.zone }}"
+    permanent: yes
+    state: "{{ item.state }}"
+  loop: "{{ firewall_rules }}"
+  when: item.port is defined
+  notify: reload firewalld
+
+
+[student@workstation data-review]$ vim roles/firewall/tasks/main.yml
+[student@workstation data-review]$ cat roles/firewall/tasks/main.yml
+---
+# tasks file for firewall
+
+- name: Ensure Firewall Sources Configuration
+  firewalld:
+    source: "{{ item.source }}"
+    zone: "{{ item.zone | default('omit') }}"
+    permanent: yes
+    state: "{{ item.state | default('enabled') }}"
+  loop: "{{ firewall_rules }}"
+  when: item.source is defined
+  notify: reload firewalld
+
+- name: Ensure Firewall Service Configuration
+  firewalld:
+    service: "{{ item.service }}"
+    zone: "{{ item.zone | default('omit') }}"
+    permanent: yes
+    state: "{{ item.state | default('enabled') }}"
+  loop: "{{ firewall_rules }}"
+  when: item.service is defined
+  notify: reload firewalld
+
+- name: Ensure Firewall Port Configuration
+  firewalld:
+    port: "{{ item.port }}/{{ item.protocol | default('tcp') | lower }}"
+    zone: "{{ item.zone | default('omit') }}"
+    permanent: yes
+    state: "{{ item.state | default('enabled') }}"
+  loop: "{{ firewall_rules }}"
+  when: item.port is defined
+  notify: reload firewalld
+
+
+[student@workstation data-review]$ ansible-navigator run -m stdout test_firewall_role.yml 
+
+PLAY [Test Firewall Role] ******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverc.lab.example.com]
+ok: [serverb.lab.example.com]
+
+TASK [firewall : Ensure Firewall Sources Configuration] ************************
+skipping: [serverb.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+skipping: [serverc.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+changed: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+skipping: [serverc.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'}) 
+changed: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+skipping: [serverb.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'}) 
+
+TASK [firewall : Ensure Firewall Service Configuration] ************************
+skipping: [serverb.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+skipping: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+skipping: [serverc.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+skipping: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+failed: [serverc.lab.example.com] (item={'service': 'ftp', 'state': 'disabled'}) => {"ansible_loop_var": "item", "changed": false, "item": {"service": "ftp", "state": "disabled"}, "msg": "ERROR: Exception caught: org.fedoraproject.FirewallD1.Exception: INVALID_ZONE: omit"}
+failed: [serverb.lab.example.com] (item={'service': 'ftp', 'state': 'disabled'}) => {"ansible_loop_var": "item", "changed": false, "item": {"service": "ftp", "state": "disabled"}, "msg": "ERROR: Exception caught: org.fedoraproject.FirewallD1.Exception: INVALID_ZONE: omit"}
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+
+PLAY RECAP *********************************************************************
+serverb.lab.example.com    : ok=2    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=2    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+
+[student@workstation data-review]$ vim roles/firewall/tasks/main.yml
+[student@workstation data-review]$ 
+[student@workstation data-review]$ cat roles/firewall/tasks/main.yml
+---
+# tasks file for firewall
+
+- name: Ensure Firewall Sources Configuration
+  firewalld:
+    source: "{{ item.source }}"
+    zone: "{{ item.zone | default(omit) }}"
+    permanent: yes
+    state: "{{ item.state | default('enabled') }}"
+  loop: "{{ firewall_rules }}"
+  when: item.source is defined
+  notify: reload firewalld
+
+- name: Ensure Firewall Service Configuration
+  firewalld:
+    service: "{{ item.service }}"
+    zone: "{{ item.zone | default(omit) }}"
+    permanent: yes
+    state: "{{ item.state | default('enabled') }}"
+  loop: "{{ firewall_rules }}"
+  when: item.service is defined
+  notify: reload firewalld
+
+- name: Ensure Firewall Port Configuration
+  firewalld:
+    port: "{{ item.port }}/{{ item.protocol | default('tcp') | lower }}"
+    zone: "{{ item.zone | default(omit) }}"
+    permanent: yes
+    state: "{{ item.state | default('enabled') }}"
+  loop: "{{ firewall_rules }}"
+  when: item.port is defined
+  notify: reload firewalld
+
+
+[student@workstation data-review]$ ansible-navigator run -m stdout test_firewall_role.yml 
+
+PLAY [Test Firewall Role] ******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverc.lab.example.com]
+ok: [serverb.lab.example.com]
+
+TASK [firewall : Ensure Firewall Sources Configuration] ************************
+skipping: [serverb.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+skipping: [serverc.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+ok: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+skipping: [serverb.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'}) 
+ok: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+skipping: [serverc.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'}) 
+
+TASK [firewall : Ensure Firewall Service Configuration] ************************
+skipping: [serverb.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+skipping: [serverc.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+skipping: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+skipping: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+ok: [serverc.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'})
+ok: [serverb.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'})
+
+TASK [firewall : Ensure Firewall Port Configuration] ***************************
+changed: [serverb.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'})
+skipping: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+skipping: [serverb.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'}) 
+changed: [serverc.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'})
+skipping: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+skipping: [serverc.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'}) 
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+
+PLAY RECAP *********************************************************************
+serverb.lab.example.com    : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation data-review]$ cat deploy_apache.yml 
+---
+
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  gather_facts: no
+
+  roles:
+    # Use the apache_firewall_rules.yml.j2 template to
+    # generate the firewall rules.
+    # Remove the two current list items from the firewall_rules
+    # variable definition and set its value with a Jinja2
+    # template of the form:
+    # firewall_rules: "{{ plugin | filter }}"
+    - role: apache
+      firewall_rules:
+        # HTTP requests from the internal zone
+        - zone: internal
+          service: http
+
+        # Load balancer IP access from the internal zone
+        - zone: internal
+          source: 172.25.250.10
+
+[student@workstation data-review]$ vim deploy_apache.yml
+[student@workstation data-review]$ cat deploy_apache.yml
+---
+
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  gather_facts: no
+
+  roles:
+    # Use the apache_firewall_rules.yml.j2 template to
+    # generate the firewall rules.
+    - role: apache
+      firewall_rules: "{{ lookup('template', 'apache_firewall_rules.yml.j2' ) | from_yaml }}"
+[student@workstation data-review]$ cat templates/apache_firewall_rules.yml.j2 
+#Constructing the value of the
+# firewall_rules variable for the
+# firewall role.
+
+- port: {{ apache_port }}
+  protocol: TCP
+  zone: internal
+{% for load_balancer in groups['lb_servers'] %}
+- zone: internal
+  source: "{{ load_balancer_ip_addr }}"
+{% endfor %}
+[student@workstation data-review]$ 
+[student@workstation data-review]$ 
+[student@workstation data-review]$ 
+[student@workstation data-review]$ vim templates/apache_firewall_rules.yml.j2
+[student@workstation data-review]$ cat templates/apache_firewall_rules.yml.j2
+#Constructing the value of the
+# firewall_rules variable for the
+# firewall role.
+
+- port: {{ apache_port }}
+  protocol: TCP
+  zone: internal
+{% for load_balancer in groups['lb_servers'] %}
+- zone: internal
+  source: "{{ hostvars[load_balancer]['ansible_facts']['default_ipv4']['address'] }}"
+{% endfor %}
+[student@workstation data-review]$ 
+[student@workstation data-review]$ 
+[student@workstation data-review]$ ansible-navigator run -m stdout site.yml 
+
+PLAY [Gather facts] ************************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverb.lab.example.com]
+ok: [serverc.lab.example.com]
+ok: [servera.lab.example.com]
+
+PLAY [Ensure HAProxy is deployed] **********************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [servera.lab.example.com]
+
+TASK [firewall : Ensure Firewall Sources Configuration] ************************
+skipping: [servera.lab.example.com] => (item={'port': 80}) 
+
+TASK [firewall : Ensure Firewall Service Configuration] ************************
+skipping: [servera.lab.example.com] => (item={'port': 80}) 
+
+TASK [firewall : Ensure Firewall Port Configuration] ***************************
+changed: [servera.lab.example.com] => (item={'port': 80})
+
+TASK [haproxy : Ensure haproxy packages are present] ***************************
+changed: [servera.lab.example.com]
+
+TASK [haproxy : Ensure haproxy is started and enabled] *************************
+changed: [servera.lab.example.com]
+
+TASK [haproxy : Ensure haproxy configuration is set] ***************************
+changed: [servera.lab.example.com]
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+changed: [servera.lab.example.com]
+
+RUNNING HANDLER [haproxy : reload haproxy] *************************************
+changed: [servera.lab.example.com]
+
+PLAY [Ensure Apache is deployed] ***********************************************
+
+TASK [firewall : Ensure Firewall Sources Configuration] ************************
+skipping: [serverb.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+skipping: [serverc.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+ok: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+ok: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+
+TASK [firewall : Ensure Firewall Service Configuration] ************************
+skipping: [serverb.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+skipping: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+skipping: [serverc.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'}) 
+skipping: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+
+TASK [firewall : Ensure Firewall Port Configuration] ***************************
+ok: [serverb.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'})
+skipping: [serverb.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+ok: [serverc.lab.example.com] => (item={'port': 8008, 'protocol': 'TCP', 'zone': 'internal'})
+skipping: [serverc.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+
+TASK [apache : Apache Port Check] **********************************************
+ok: [serverb.lab.example.com] => {
+    "changed": false,
+    "msg": "The specified apache port (8008) is allowed."
+}
+ok: [serverc.lab.example.com] => {
+    "changed": false,
+    "msg": "The specified apache port (8008) is allowed."
+}
+
+TASK [apache : Install http] ***************************************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+
+TASK [apache : Configure SELinux to allow httpd to connect to remote database] ***
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+
+TASK [apache : http service state] *********************************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+
+TASK [apache : Custom Configuration] *******************************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+
+RUNNING HANDLER [apache : restart httpd] ***************************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+
+PLAY [Ensure Web App is deployed] **********************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [serverc.lab.example.com]
+ok: [serverb.lab.example.com]
+
+TASK [webapp : Copy a stub file.] **********************************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+
+PLAY RECAP *********************************************************************
+servera.lab.example.com    : ok=8    changed=6    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+serverb.lab.example.com    : ok=11   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=11   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+[student@workstation data-review]$ echo $?
+0
+[student@workstation data-review]$ curl servera
+This is serverb. (version v1.0)
+[student@workstation data-review]$ curl servera
+This is serverc. (version v1.0)
+[student@workstation data-review]$ curl servera
+This is serverb. (version v1.0)
+[student@workstation data-review]$ curl serverb
+curl: (7) Failed to connect to serverb port 80: No route to host
+[student@workstation data-review]$ 
+[student@workstation data-review]$ curl serverc:8008
+curl: (7) Failed to connect to serverc port 8008: No route to host
+[student@workstation data-review]$ 
+[student@workstation data-review]$ 
+[student@workstation data-review]$ 
+[student@workstation data-review]$ git status
+On branch exercise
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   deploy_apache.yml
+	modified:   roles/firewall/tasks/main.yml
+	modified:   templates/apache_firewall_rules.yml.j2
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.ssh/
+	ansible-navigator.log
+	site-artifact-2022-03-16T06:43:22.322001+00:00.json
+	test_firewall_role-artifact-2022-03-16T06:36:25.010337+00:00.json
+	test_firewall_role-artifact-2022-03-16T06:38:00.835468+00:00.json
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[student@workstation data-review]$ vim .gitignore
+[student@workstation data-review]$ git status
+On branch exercise
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   deploy_apache.yml
+	modified:   roles/firewall/tasks/main.yml
+	modified:   templates/apache_firewall_rules.yml.j2
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.gitignore
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[student@workstation data-review]$ git add deploy_apache.yml roles/firewall/tasks/main.yml templates/apache_firewall_rules.yml.j2 .gitignore 
+[student@workstation data-review]$ git commit -m "Added filters and plugins"
+[exercise 7e0fa56] Added filters and plugins
+ 4 files changed, 23 insertions(+), 32 deletions(-)
+ create mode 100644 .gitignore
+ rewrite deploy_apache.yml (66%)
+[student@workstation data-review]$ git push origin exercise
+Enumerating objects: 18, done.
+Counting objects: 100% (18/18), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (8/8), done.
+Writing objects: 100% (10/10), 1016 bytes | 1016.00 KiB/s, done.
+Total 10 (delta 5), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: To create a merge request for exercise, visit:
+remote:   https://git.lab.example.com/git/data-review/-/merge_requests/new?merge_request%5Bsource_branch%5D=exercise
+remote: 
+To https://git.lab.example.com/git/data-review.git
+ * [new branch]      exercise -> exercise
+[student@workstation data-review]$ cd
+[student@workstation ~]$ lab grade data-review 
+
+Grading lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Set up for grading ................................................................................................................................................ SUCCESS
+ · Check firewall state attribute .................................................................................................................................... PASS
+ · Check firewall zone attribute ..................................................................................................................................... PASS
+ · Check firewall port/protocol expression ........................................................................................................................... PASS
+ · Check templated rules for correct fact ............................................................................................................................ PASS
+ · Check playbook firewall_rules definition .......................................................................................................................... PASS
+
+Overall lab grade: PASS
+
+[student@workstation ~]$ lab finish data-review
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+
