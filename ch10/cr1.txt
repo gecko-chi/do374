@@ -1,0 +1,552 @@
+[student@workstation ~]$ lab start review-cr1
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Adding exercise content ........................................................................................................................................... SUCCESS
+ · Preparing servers ................................................................................................................................................. SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+Desktop  Documents  Downloads  lab_do374  Music  Pictures  Public  review-cr1  Templates  Videos
+[student@workstation ~]$ ls review-cr1/
+collections
+[student@workstation ~]$ git clone https://git.lab.example.com/git/review-cr1.git /home/student/review-cr1/project
+Cloning into '/home/student/review-cr1/project'...
+remote: Enumerating objects: 15, done.
+remote: Counting objects: 100% (15/15), done.
+remote: Compressing objects: 100% (14/14), done.
+remote: Total 15 (delta 0), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (15/15), 4.33 KiB | 1.08 MiB/s, done.
+[student@workstation ~]$ ls review-cr1/
+collections  project
+[student@workstation ~]$ ls review-cr1/project/
+database  db.yml  haproxy.yml  inventory  templates  webapp.yml
+[student@workstation ~]$ cd review-cr1/project/
+[student@workstation project]$ git checkout -b student/inventory-edits
+Switched to a new branch 'student/inventory-edits'
+[student@workstation project]$ git status
+On branch student/inventory-edits
+nothing to commit, working tree clean
+[student@workstation project]$ vim .gitignore
+[student@workstation project]$ cat .gitignore
+*.log
+.ssh/
+collections/
+[student@workstation project]$ cp -R /home/student/review-cr1/collections/ /home/student/review-cr1/project/
+[student@workstation project]$ ls
+collections  database  db.yml  haproxy.yml  inventory  templates  webapp.yml
+[student@workstation project]$ vim ansible.cfg
+[student@workstation project]$ cat ansible.cfg
+[defaults]
+inventory = ./inventory/
+[student@workstation project]$ 
+[student@workstation project]$ 
+[student@workstation project]$ ls
+ansible.cfg  collections  database  db.yml  haproxy.yml  inventory  templates  webapp.yml
+[student@workstation project]$ vim ansible-navigator.yml
+[student@workstation project]$ 
+[student@workstation project]$ 
+[student@workstation project]$ cat ansible-navigator.yml
+---
+ansible-navigator:
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+  playbook-artifact:
+    enable: false
+[student@workstation project]$ 
+[student@workstation project]$ cat haproxy.yml 
+---
+- name: Deploy haproxy
+  hosts: haproxy
+  become: true
+
+  vars:
+    - lb_service: haproxy
+    - firewall_services:
+        - http
+        - https
+
+  tasks:
+
+    - name: Install haproxy
+      ansible.builtin.yum:
+        name: "{{ lb_service }}"
+        state: latest
+
+    - name: Deploy haproxy config file
+      ansible.builtin.template:
+        src: templates/haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+
+    - name: Allow port 80 and 443 through the firewall
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        state: enabled
+        permanent: true
+        immediate: true
+      with_items:
+        - "{{ firewall_services }}"
+
+    - name: Start haproxy service
+      ansible.builtin.service:
+        name: "{{ lb_service }}"
+        state: started
+        enabled: true
+[student@workstation project]$ head haproxy.yml
+---
+- name: Deploy haproxy
+  hosts: haproxy
+  become: true
+
+  vars:
+    - lb_service: haproxy
+    - firewall_services:
+        - http
+        - https
+[student@workstation project]$ vim haproxy.yml
+[student@workstation project]$ head haproxy.yml
+---
+- name: Deploy haproxy
+  hosts: haproxy
+  become: true
+
+  tasks:
+
+    - name: Install haproxy
+      ansible.builtin.yum:
+        name: "{{ lb_service }}"
+[student@workstation project]$ 
+[student@workstation project]$ cat inventory/
+cat: inventory/: Is a directory
+[student@workstation project]$ cat inventory/
+inventory-dynamic.py  inventory-static.yml  __pycache__/          
+[student@workstation project]$ cat inventory/inventory-static.yml 
+web:
+  hosts:
+    serverb.lab.example.com:
+    serverc.lab.example.com:
+[student@workstation project]$ ./inventory/inventory-dynamic.py --list
+bash: ./inventory/inventory-dynamic.py: Permission denied
+[student@workstation project]$ python3 ./inventory/inventory-dynamic.py --list
+{"haproxy": {"hosts": ["servera.lab.example.com"], "vars": {}}}
+[student@workstation project]$ mkdir -p /home/student/review-cr1/project/group_vars/haproxy
+[student@workstation project]$ vim /home/student/review-cr1/project/group_vars/haproxy/vars.yml
+[student@workstation project]$ cat /home/student/review-cr1/project/group_vars/haproxy/vars.yml
+---
+ - lb_service: haproxy
+ - firewall_services:
+     - http
+     - https
+[student@workstation project]$ 
+[student@workstation project]$ 
+[student@workstation project]$ vim inventory/inventory-static.yml 
+[student@workstation project]$ cat inventory/inventory-static.yml
+web:
+  hosts:
+    serverb.lab.example.com:
+    serverc.lab.example.com:
+  vars:
+    web_service: httpd
+    firewall_services:
+      - http
+      - https
+
+db:
+  hosts:
+    serverd.lab.example.com:
+  vars:
+    db_service: mariadb
+    db_port: 3306/tcp
+[student@workstation project]$ 
+[student@workstation project]$ 
+[student@workstation project]$ sudo yum install ansible-navigator
+[sudo] password for student: 
+Last metadata expiration check: 2:01:39 ago on Wed 16 Mar 2022 10:46:22 PM EDT.
+Dependencies resolved.
+================================================================================================================================================================================
+ Package                                  Architecture       Version                      Repository                                                                       Size
+================================================================================================================================================================================
+Installing:
+ ansible-navigator                        noarch             1.0.0-2.el8ap                ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms             260 k
+Installing dependencies:
+ ansible-runner                           noarch             2.0.1-1.el8ap                ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms             8.2 k
+ python38-ansible-runner                  noarch             2.0.1-1.el8ap                ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms             117 k
+ python38-daemon                          noarch             2.1.2-10.el8ap               ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms              40 k
+ python38-docutils                        noarch             0.14-7.el8ap                 ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms             1.6 M
+ python38-importlib-resources             noarch             1.1.0-2.el8ap                ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms              54 k
+ python38-lockfile                        noarch             1:0.11.0-9.el8ap             ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms              38 k
+ python38-onigurumacffi                   x86_64             1.1.0-1.el8ap                ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms              24 k
+ python38-pexpect                         noarch             4.6-3.el8ap                  ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms             143 k
+ python38-ptyprocess                      noarch             0.5.2-4.el8ap                ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms              30 k
+
+Transaction Summary
+================================================================================================================================================================================
+Install  10 Packages
+
+Total download size: 2.3 M
+Installed size: 8.3 M
+Is this ok [y/N]: y
+Downloading Packages:
+(1/10): ansible-runner-2.0.1-1.el8ap.noarch.rpm                                                                                                 226 kB/s | 8.2 kB     00:00    
+(2/10): ansible-navigator-1.0.0-2.el8ap.noarch.rpm                                                                                              6.8 MB/s | 260 kB     00:00    
+(3/10): python38-ansible-runner-2.0.1-1.el8ap.noarch.rpm                                                                                         14 MB/s | 117 kB     00:00    
+(4/10): python38-ptyprocess-0.5.2-4.el8ap.noarch.rpm                                                                                            4.4 MB/s |  30 kB     00:00    
+(5/10): python38-pexpect-4.6-3.el8ap.noarch.rpm                                                                                                 3.0 MB/s | 143 kB     00:00    
+(6/10): python38-onigurumacffi-1.1.0-1.el8ap.x86_64.rpm                                                                                         7.4 MB/s |  24 kB     00:00    
+(7/10): python38-importlib-resources-1.1.0-2.el8ap.noarch.rpm                                                                                   6.2 MB/s |  54 kB     00:00    
+(8/10): python38-lockfile-0.11.0-9.el8ap.noarch.rpm                                                                                             1.7 MB/s |  38 kB     00:00    
+(9/10): python38-daemon-2.1.2-10.el8ap.noarch.rpm                                                                                               2.6 MB/s |  40 kB     00:00    
+(10/10): python38-docutils-0.14-7.el8ap.noarch.rpm                                                                                               41 MB/s | 1.6 MB     00:00    
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Total                                                                                                                                            26 MB/s | 2.3 MB     00:00     
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                                                                                                                        1/1 
+  Installing       : python38-lockfile-1:0.11.0-9.el8ap.noarch                                                                                                             1/10 
+  Installing       : python38-importlib-resources-1.1.0-2.el8ap.noarch                                                                                                     2/10 
+  Installing       : python38-docutils-0.14-7.el8ap.noarch                                                                                                                 3/10 
+  Installing       : python38-daemon-2.1.2-10.el8ap.noarch                                                                                                                 4/10 
+  Installing       : python38-onigurumacffi-1.1.0-1.el8ap.x86_64                                                                                                           5/10 
+  Installing       : python38-ptyprocess-0.5.2-4.el8ap.noarch                                                                                                              6/10 
+  Installing       : python38-pexpect-4.6-3.el8ap.noarch                                                                                                                   7/10 
+  Installing       : python38-ansible-runner-2.0.1-1.el8ap.noarch                                                                                                          8/10 
+  Installing       : ansible-runner-2.0.1-1.el8ap.noarch                                                                                                                   9/10 
+  Installing       : ansible-navigator-1.0.0-2.el8ap.noarch                                                                                                               10/10 
+  Running scriptlet: ansible-navigator-1.0.0-2.el8ap.noarch                                                                                                               10/10 
+  Verifying        : python38-pexpect-4.6-3.el8ap.noarch                                                                                                                   1/10 
+  Verifying        : ansible-runner-2.0.1-1.el8ap.noarch                                                                                                                   2/10 
+  Verifying        : ansible-navigator-1.0.0-2.el8ap.noarch                                                                                                                3/10 
+  Verifying        : python38-ansible-runner-2.0.1-1.el8ap.noarch                                                                                                          4/10 
+  Verifying        : python38-ptyprocess-0.5.2-4.el8ap.noarch                                                                                                              5/10 
+  Verifying        : python38-onigurumacffi-1.1.0-1.el8ap.x86_64                                                                                                           6/10 
+  Verifying        : python38-docutils-0.14-7.el8ap.noarch                                                                                                                 7/10 
+  Verifying        : python38-importlib-resources-1.1.0-2.el8ap.noarch                                                                                                     8/10 
+  Verifying        : python38-lockfile-1:0.11.0-9.el8ap.noarch                                                                                                             9/10 
+  Verifying        : python38-daemon-2.1.2-10.el8ap.noarch                                                                                                                10/10 
+
+Installed:
+  ansible-navigator-1.0.0-2.el8ap.noarch                 ansible-runner-2.0.1-1.el8ap.noarch                      python38-ansible-runner-2.0.1-1.el8ap.noarch                  
+  python38-daemon-2.1.2-10.el8ap.noarch                  python38-docutils-0.14-7.el8ap.noarch                    python38-importlib-resources-1.1.0-2.el8ap.noarch             
+  python38-lockfile-1:0.11.0-9.el8ap.noarch              python38-onigurumacffi-1.1.0-1.el8ap.x86_64              python38-pexpect-4.6-3.el8ap.noarch                           
+  python38-ptyprocess-0.5.2-4.el8ap.noarch              
+
+Complete!
+[student@workstation project]$ chmod 755 inventory/inventory-dynamic.py 
+[student@workstation project]$ ansible-navigator run -m stdout ./haproxy.yml 
+[WARNING]: Unable to parse /home/student/review-cr1/project/inventory/__pycache__ as an inventory source
+
+PLAY [Deploy haproxy] **********************************************************************************************************************************************************
+ERROR! failed to combine variables, expected dicts but got a 'dict' and a 'AnsibleSequence': 
+{}
+[{"lb_service": "haproxy"}, {"firewall_services": ["http", "https"]}]
+[student@workstation project]$ vim haproxy.yml 
+[student@workstation project]$ ls
+ansible.cfg  ansible-navigator.log  ansible-navigator.yml  collections  database  db.yml  group_vars  haproxy.yml  inventory  templates  webapp.yml
+[student@workstation project]$ cat group_vars/haproxy/vars.yml 
+---
+ - lb_service: haproxy
+ - firewall_services:
+     - http
+     - https
+[student@workstation project]$ vim group_vars/haproxy/vars.yml
+[student@workstation project]$ cat group_vars/haproxy/vars.yml
+---
+lb_service: haproxy
+firewall_services:
+  - http
+  - https
+[student@workstation project]$ 
+[student@workstation project]$ 
+[student@workstation project]$ ansible-navigator run -m stdout ./haproxy.yml 
+[WARNING]: Unable to parse /home/student/review-cr1/project/inventory/__pycache__ as an inventory source
+
+PLAY [Deploy haproxy] **********************************************************************************************************************************************************
+
+TASK [Gathering Facts] *********************************************************************************************************************************************************
+ok: [servera.lab.example.com]
+
+TASK [Install haproxy] *********************************************************************************************************************************************************
+changed: [servera.lab.example.com]
+
+TASK [Deploy haproxy config file] **********************************************************************************************************************************************
+changed: [servera.lab.example.com]
+
+TASK [Allow port 80 and 443 through the firewall] ******************************************************************************************************************************
+changed: [servera.lab.example.com] => (item=http)
+changed: [servera.lab.example.com] => (item=https)
+
+TASK [Start haproxy service] ***************************************************************************************************************************************************
+changed: [servera.lab.example.com]
+
+PLAY RECAP *********************************************************************************************************************************************************************
+servera.lab.example.com    : ok=5    changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation project]$ ansible-navigator run -m stdout ./webapp.yml 
+[WARNING]: Unable to parse /home/student/review-cr1/project/inventory/__pycache__ as an inventory source
+
+PLAY [Deploy webapp] ***********************************************************************************************************************************************************
+
+TASK [Gathering Facts] *********************************************************************************************************************************************************
+ok: [serverb.lab.example.com]
+ok: [serverc.lab.example.com]
+
+TASK [Install Apache] **********************************************************************************************************************************************************
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+TASK [Install PHP and mod_ssl] *************************************************************************************************************************************************
+changed: [serverc.lab.example.com] => (item=php)
+changed: [serverb.lab.example.com] => (item=php)
+changed: [serverc.lab.example.com] => (item=php-mysqlnd)
+changed: [serverb.lab.example.com] => (item=php-mysqlnd)
+changed: [serverc.lab.example.com] => (item=mod_ssl)
+changed: [serverb.lab.example.com] => (item=mod_ssl)
+
+TASK [Set the correct selinux booleans] ****************************************************************************************************************************************
+changed: [serverc.lab.example.com] => (item=httpd_can_network_connect)
+changed: [serverb.lab.example.com] => (item=httpd_can_network_connect)
+changed: [serverc.lab.example.com] => (item=httpd_can_network_connect_db)
+changed: [serverb.lab.example.com] => (item=httpd_can_network_connect_db)
+
+TASK [Enable and start the apache server] **************************************************************************************************************************************
+changed: [serverb.lab.example.com]
+changed: [serverc.lab.example.com]
+
+TASK [Allow port 80 and 443 through the firewall] ******************************************************************************************************************************
+changed: [serverb.lab.example.com] => (item=http)
+changed: [serverc.lab.example.com] => (item=http)
+changed: [serverb.lab.example.com] => (item=https)
+changed: [serverc.lab.example.com] => (item=https)
+
+TASK [Drop in index.php file] **************************************************************************************************************************************************
+changed: [serverc.lab.example.com]
+changed: [serverb.lab.example.com]
+
+PLAY RECAP *********************************************************************************************************************************************************************
+serverb.lab.example.com    : ok=7    changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=7    changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation project]$ ansible-navigator run -m stdout ./db.yml 
+[WARNING]: Unable to parse /home/student/review-cr1/project/inventory/__pycache__ as an inventory source
+
+PLAY [Install database server] *************************************************************************************************************************************************
+
+TASK [Gathering Facts] *********************************************************************************************************************************************************
+ok: [serverd.lab.example.com]
+
+TASK [Install mariadb] *********************************************************************************************************************************************************
+changed: [serverd.lab.example.com] => (item=mariadb)
+changed: [serverd.lab.example.com] => (item=mariadb-server)
+
+TASK [Enable and start the mariadb service] ************************************************************************************************************************************
+changed: [serverd.lab.example.com]
+
+TASK [Open port 3306 in the firewall] ******************************************************************************************************************************************
+changed: [serverd.lab.example.com]
+
+TASK [Copy database file to db host] *******************************************************************************************************************************************
+changed: [serverd.lab.example.com]
+
+TASK [Import the webDB database] ***********************************************************************************************************************************************
+changed: [serverd.lab.example.com]
+
+TASK [Create the student mysql user] *******************************************************************************************************************************************
+changed: [serverd.lab.example.com]
+
+PLAY RECAP *********************************************************************************************************************************************************************
+serverd.lab.example.com    : ok=7    changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[student@workstation project]$ cat webapp.yml 
+---
+- name: Deploy webapp
+  hosts: web
+  become: true
+
+  tasks:
+
+  - name: Install Apache
+    ansible.builtin.yum:
+      name: "{{ web_service }}"
+      state: latest
+
+  - name: Install PHP and mod_ssl
+    ansible.builtin.yum:
+      name: "{{ item }}"
+      state: latest
+    loop:
+      - php
+      - php-mysqlnd
+      - mod_ssl
+
+  - name: Set the correct selinux booleans
+    ansible.posix.seboolean:
+      name: "{{ item }}"
+      state: true
+      persistent: true
+    loop:
+      - httpd_can_network_connect
+      - httpd_can_network_connect_db
+
+  - name: Enable and start the apache server
+    ansible.builtin.service:
+      name: "{{ web_service }}"
+      state: started
+      enabled: true
+
+  - name: Allow port 80 and 443 through the firewall
+    ansible.posix.firewalld:
+      service: "{{ item }}"
+      state: enabled
+      permanent: true
+      immediate: true
+    with_items:
+      - "{{ firewall_services }}"
+
+  - name: Drop in index.php file
+    ansible.builtin.template:
+      src: templates/index.php.j2
+      dest: /var/www/html/index.php
+[student@workstation project]$ cat db.yml 
+---
+- name: Install database server
+  hosts: db
+  become: true
+
+  tasks:
+
+  - name: Install mariadb
+    ansible.builtin.yum:
+      name: "{{ item }}"
+      state: latest
+    loop:
+      - "{{ db_service }}"
+      - mariadb-server
+
+  - name: Enable and start the mariadb service
+    ansible.builtin.service:
+      name: "{{ db_service }}"
+      state: started
+      enabled: true
+
+  - name: Open port 3306 in the firewall
+    ansible.posix.firewalld:
+      port: "{{ db_port }}"
+      state: enabled
+      permanent: true
+      immediate: true
+
+  - name: Copy database file to db host
+    ansible.builtin.copy:
+      src: database/webDB.sql
+      dest: /tmp
+
+  - name: Import the webDB database
+    community.mysql.mysql_db:
+      name: webDB
+      state: import
+      target: /tmp/webDB.sql
+
+  - name: Create the student mysql user
+    community.mysql.mysql_user:
+      state: present
+      name: student
+      password: student
+      priv: 'webDB.*:ALL,GRANT'
+      host: '%'
+[student@workstation project]$ curl http://servera.lab.example.com 
+This is the server serverb and the database is up
+[student@workstation project]$ curl http://servera.lab.example.com 
+This is the server serverc and the database is up
+[student@workstation project]$ git status 
+On branch student/inventory-edits
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   haproxy.yml
+	modified:   inventory/inventory-dynamic.py
+	modified:   inventory/inventory-static.yml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.gitignore
+	ansible-navigator.yml
+	ansible.cfg
+	group_vars/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[student@workstation project]$ git add --all
+[student@workstation project]$ git commit -m 'updating inventory'
+[student/inventory-edits 43c3653] updating inventory
+ 7 files changed, 28 insertions(+), 6 deletions(-)
+ create mode 100644 .gitignore
+ create mode 100644 ansible-navigator.yml
+ create mode 100644 ansible.cfg
+ create mode 100644 group_vars/haproxy/vars.yml
+ mode change 100644 => 100755 inventory/inventory-dynamic.py
+[student@workstation project]$ git push -u origin  student/inventory-edits 
+Enumerating objects: 15, done.
+Counting objects: 100% (15/15), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (7/7), done.
+Writing objects: 100% (11/11), 1.07 KiB | 1.07 MiB/s, done.
+Total 11 (delta 2), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: To create a merge request for student/inventory-edits, visit:
+remote:   https://git.lab.example.com/git/review-cr1/-/merge_requests/new?merge_request%5Bsource_branch%5D=student%2Finventory-edits
+remote: 
+To https://git.lab.example.com/git/review-cr1.git
+ * [new branch]      student/inventory-edits -> student/inventory-edits
+Branch 'student/inventory-edits' set up to track remote branch 'student/inventory-edits' from 'origin'.
+[student@workstation project]$ git status 
+On branch student/inventory-edits
+Your branch is up to date with 'origin/student/inventory-edits'.
+
+nothing to commit, working tree clean
+[student@workstation project]$ lab grade review-cr1
+
+Grading lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Checking for student/inventory-edits branch ....................................................................................................................... PASS
+ · Checking for *.log in gitignore ................................................................................................................................... PASS
+ · Checking for .ssh in gitignore .................................................................................................................................... PASS
+ · Checking for collections directory ................................................................................................................................ PASS
+ · Checking for collections directory in gitignore ................................................................................................................... PASS
+ · Verifying default inventory location .............................................................................................................................. PASS
+ · Verifying default execution environment ........................................................................................................................... PASS
+ · Checking config for playbook artifact generation .................................................................................................................. PASS
+ · Checking for variable removal in haproxy.yml ...................................................................................................................... PASS
+ · Checking for haproxy lb_service variable in inventory ............................................................................................................. PASS
+ · Checking for haproxy firewall_services variable in inventory ...................................................................................................... PASS
+ · Checking for web web_service variable in inventory ................................................................................................................ PASS
+ · Checking for web firewall_services variable in inventory .......................................................................................................... PASS
+ · Checking for db group and serverd member .......................................................................................................................... PASS
+ · Checking for db db_service variable in inventory .................................................................................................................. PASS
+ · Checking for db db_port variable in inventory ..................................................................................................................... PASS
+ · Checking for ansible-navigator installation ....................................................................................................................... PASS
+ · Checking for haproxy.yml playbook execution ....................................................................................................................... PASS
+ · Checking for webapp.yml playbook execution ........................................................................................................................ PASS
+ · Checking for db.yml playbook execution ............................................................................................................................ PASS
+ · Checking for webapp availability .................................................................................................................................. PASS
+ · Checking for student/inventory-edits remote branch ................................................................................................................ PASS
+
+Overall lab grade: PASS
+
+[student@workstation project]$ lab finish review-cr1
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up exercise .............................................................................................................................................. SUCCESS
+
+[student@workstation project]$ 
+

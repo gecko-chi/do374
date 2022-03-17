@@ -1,0 +1,757 @@
+[student@workstation project]$ lab start  review-cr2
+
+Starting lab.
+
+ · Checking status for lab systems ................................................................................................................................... SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Ensuring the 'ee-supported-rhel8' container is available .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Backing up the configuration of the systems ....................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+
+[student@workstation project]$ mkdir -p ~/git-repos
+[student@workstation project]$ cd ~/git-repos
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/review-cr2.git
+Cloning into 'review-cr2'...
+remote: Enumerating objects: 109, done.
+remote: Counting objects: 100% (109/109), done.
+remote: Compressing objects: 100% (72/72), done.
+remote: Total 109 (delta 4), reused 109 (delta 4), pack-reused 0
+Receiving objects: 100% (109/109), 184.34 KiB | 20.48 MiB/s, done.
+Resolving deltas: 100% (4/4), done.
+[student@workstation git-repos]$ ls
+review-cr2
+[student@workstation git-repos]$ cd review-cr2/
+[student@workstation review-cr2]$ git status 
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+[student@workstation review-cr2]$ ls
+ansible.cfg            collections        deploy_haproxy.yml  files       inventory  site.yml   test_firewall_role.yml
+ansible-navigator.yml  deploy_apache.yml  deploy_webapp.yml   group_vars  roles      templates  update_webapp.yml
+[student@workstation review-cr2]$ git branch 
+* main
+[student@workstation review-cr2]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation review-cr2]$ git branch 
+* exercise
+  main
+[student@workstation review-cr2]$ cat ansible
+cat: ansible: No such file or directory
+[student@workstation review-cr2]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+[student@workstation review-cr2]$ cat ansible-navigator.yml 
+---
+ansible-navigator:
+  ansible:
+    config: ./ansible.cfg
+
+  execution-environment:
+    image: ee-supported-rhel8:2.0
+    pull-policy: missing
+[student@workstation review-cr2]$ vim ansible.cfg 
+[student@workstation review-cr2]$ cat ansible.cfg
+[defaults]
+inventory=inventory
+remote_user=devops
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ cat deploy_haproxy.yml 
+---
+- name: Gather web_server facts
+  hosts: web_servers
+  gather_facts: true
+  tasks: []
+
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  force_handlers: true
+
+  roles:
+    # The "haproxy" role has a dependency on the "firewall"
+    # role.  the "firewall" role requires a "firewall_rules"
+    # variable be defined.
+    - role: haproxy
+      haproxy_backend_port: "{{ apache_port }}"
+      # all backend servers are active; none are disabled.
+      haproxy_backend_pool: "{{ groups['web_servers'] }}"
+      haproxy_active_backends: "{{ groups['web_servers'] }}"
+[student@workstation review-cr2]$ vim deploy_haproxy.yml
+[student@workstation review-cr2]$ cat deploy_haproxy.yml
+---
+- name: Gather web_server facts
+  hosts: web_servers
+  gather_facts: true
+  become: true
+  tasks: []
+
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  force_handlers: true
+
+  roles:
+    # The "haproxy" role has a dependency on the "firewall"
+    # role.  the "firewall" role requires a "firewall_rules"
+    # variable be defined.
+    - role: haproxy
+      haproxy_backend_port: "{{ apache_port }}"
+      # all backend servers are active; none are disabled.
+      haproxy_backend_pool: "{{ groups['web_servers'] }}"
+      haproxy_active_backends: "{{ groups['web_servers'] }}"
+[student@workstation review-cr2]$ cat deploy_apache.yml 
+---
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  gather_facts: false
+
+  roles:
+    # Use the apache_firewall_rules.yml.j2 template to
+    # generate the firewall rules.
+    - role: apache
+      firewall_rules: []
+[student@workstation review-cr2]$ vim deploy_apache.yml
+[student@workstation review-cr2]$ cat deploy_apache.yml
+---
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  become: true
+  gather_facts: false
+
+  roles:
+    # Use the apache_firewall_rules.yml.j2 template to
+    # generate the firewall rules.
+    - role: apache
+      firewall_rules: []
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ cat deploy_webapp.yml 
+---
+- name: Ensure Web App is deployed
+  hosts: web_servers
+
+  roles:
+    - role: webapp
+[student@workstation review-cr2]$ vim deploy_webapp.yml
+[student@workstation review-cr2]$ cat deploy_webapp.yml 
+---
+- name: Ensure Web App is deployed
+  hosts: web_servers
+  become: true
+
+  roles:
+    - role: webapp
+[student@workstation review-cr2]$ cat deploy_haproxy.yml 
+---
+- name: Gather web_server facts
+  hosts: web_servers
+  gather_facts: true
+  become: true
+  tasks: []
+
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  force_handlers: true
+
+  roles:
+    # The "haproxy" role has a dependency on the "firewall"
+    # role.  the "firewall" role requires a "firewall_rules"
+    # variable be defined.
+    - role: haproxy
+      haproxy_backend_port: "{{ apache_port }}"
+      # all backend servers are active; none are disabled.
+      haproxy_backend_pool: "{{ groups['web_servers'] }}"
+      haproxy_active_backends: "{{ groups['web_servers'] }}"
+[student@workstation review-cr2]$ vim deploy_haproxy.yml
+[student@workstation review-cr2]$ cat deploy_haproxy.yml 
+---
+- name: Gather web_server facts
+  hosts: web_servers
+  gather_facts: true
+  tasks: []
+
+- name: Ensure HAProxy is deployed
+  hosts: lb_servers
+  become: true
+  force_handlers: true
+
+  roles:
+    # The "haproxy" role has a dependency on the "firewall"
+    # role.  the "firewall" role requires a "firewall_rules"
+    # variable be defined.
+    - role: haproxy
+      haproxy_backend_port: "{{ apache_port }}"
+      # all backend servers are active; none are disabled.
+      haproxy_backend_pool: "{{ groups['web_servers'] }}"
+      haproxy_active_backends: "{{ groups['web_servers'] }}"
+[student@workstation review-cr2]$ ls
+ansible.cfg            collections        deploy_haproxy.yml  files       inventory  site.yml   test_firewall_role.yml
+ansible-navigator.yml  deploy_apache.yml  deploy_webapp.yml   group_vars  roles      templates  update_webapp.yml
+[student@workstation review-cr2]$ ls roles/
+apache  firewall  haproxy  webapp
+[student@workstation review-cr2]$ cat roles/firewall/tasks/main.yml 
+---
+- name: Ensure Firewall Sources Configuration
+  firewalld:
+    source: "{{ item['source'] }}"
+    zone: "{{ item['zone'] }}"
+    permanent: true
+    state: "{{ item['state'] }}"
+  loop: "{{ firewall_rules }}"
+  when: item['source'] is defined
+  notify: reload firewalld
+
+- name: Ensure Firewall Service Configuration
+  firewalld:
+    service: "{{ item['service'] }}"
+    zone: "{{ item['zone'] }}"
+    permanent: true
+    state: "{{ item['state'] }}"
+  loop: "{{ firewall_rules }}"
+  when: item['service'] is defined
+  notify: reload firewalld
+
+- name: Ensure Firewall Port Configuration
+  firewalld:
+    port: "{{ item['port'] }}/{{ item['protocol'] }}"
+    zone: "{{ item['zone'] }}"
+    permanent: true
+    state: "{{ item['state'] }}"
+  loop: "{{ firewall_rules }}"
+  when: item['port'] is defined
+  notify: reload firewalld
+[student@workstation review-cr2]$ vim roles/firewall/tasks/main.yml
+[student@workstation review-cr2]$ cat roles/firewall/tasks/main.yml
+---
+- name: Ensure Firewall Sources Configuration
+  firewalld:
+    source: "{{ item['source'] }}"
+    zone: "{{ item['zone'] | default(omit) }}"
+    permanent: true
+    state: "{{ item['state'] | default('enabled') }}"
+  loop: "{{ firewall_rules }}"
+  when: item['source'] is defined
+  notify: reload firewalld
+
+- name: Ensure Firewall Service Configuration
+  firewalld:
+    service: "{{ item['service'] }}"
+    zone: "{{ item['zone'] | default(omit) }}"
+    permanent: true
+    state: "{{ item['state'] | default('enabled') }}"
+  loop: "{{ firewall_rules }}"
+  when: item['service'] is defined
+  notify: reload firewalld
+
+- name: Ensure Firewall Port Configuration
+  firewalld:
+    port: "{{ item['port'] }}/{{ item['protocol'] | default('tcp') | lower }}"
+    zone: "{{ item['zone'] | default(omit) }}"
+    permanent: true
+    state: "{{ item['state'] | default('enabled') }}"
+  loop: "{{ firewall_rules }}"
+  when: item['port'] is defined
+  notify: reload firewalld
+[student@workstation review-cr2]$ cat test_firewall_role.yml
+---
+- name: Test Firewall Role
+  hosts: serverf.lab.example.com
+  become: true
+  gather_facts: false
+
+  roles:
+    - role: firewall
+      firewall_rules:
+        - port: 4242
+          protocol: TCP
+          zone: internal
+        - zone: internal
+          source: 172.25.250.10
+        - service: ftp
+          state: disabled
+        - port: 4343
+
+    - role: firewall
+      firewall_rules:
+        - port: 4242
+          protocol: TCP
+          zone: internal
+          state: disabled
+        - zone: internal
+          source: 172.25.250.10
+          state: disabled
+        - port: 4343
+          state: disabled
+[student@workstation review-cr2]$ ansible-navigator run -m stdout test_firewall_role.yml 
+
+PLAY [Test Firewall Role] ******************************************************
+
+TASK [firewall : Ensure Firewall Sources Configuration] ************************
+skipping: [serverf.lab.example.com] => (item={'port': 4242, 'protocol': 'TCP', 'zone': 'internal'}) 
+changed: [serverf.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'})
+skipping: [serverf.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'}) 
+skipping: [serverf.lab.example.com] => (item={'port': 4343}) 
+
+TASK [firewall : Ensure Firewall Service Configuration] ************************
+skipping: [serverf.lab.example.com] => (item={'port': 4242, 'protocol': 'TCP', 'zone': 'internal'}) 
+skipping: [serverf.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+ok: [serverf.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'})
+skipping: [serverf.lab.example.com] => (item={'port': 4343}) 
+
+TASK [firewall : Ensure Firewall Port Configuration] ***************************
+changed: [serverf.lab.example.com] => (item={'port': 4242, 'protocol': 'TCP', 'zone': 'internal'})
+skipping: [serverf.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10'}) 
+skipping: [serverf.lab.example.com] => (item={'service': 'ftp', 'state': 'disabled'}) 
+changed: [serverf.lab.example.com] => (item={'port': 4343})
+
+TASK [firewall : Ensure Firewall Sources Configuration] ************************
+skipping: [serverf.lab.example.com] => (item={'port': 4242, 'protocol': 'TCP', 'zone': 'internal', 'state': 'disabled'}) 
+changed: [serverf.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10', 'state': 'disabled'})
+skipping: [serverf.lab.example.com] => (item={'port': 4343, 'state': 'disabled'}) 
+
+TASK [firewall : Ensure Firewall Service Configuration] ************************
+skipping: [serverf.lab.example.com] => (item={'port': 4242, 'protocol': 'TCP', 'zone': 'internal', 'state': 'disabled'}) 
+skipping: [serverf.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10', 'state': 'disabled'}) 
+skipping: [serverf.lab.example.com] => (item={'port': 4343, 'state': 'disabled'}) 
+
+TASK [firewall : Ensure Firewall Port Configuration] ***************************
+changed: [serverf.lab.example.com] => (item={'port': 4242, 'protocol': 'TCP', 'zone': 'internal', 'state': 'disabled'})
+skipping: [serverf.lab.example.com] => (item={'zone': 'internal', 'source': '172.25.250.10', 'state': 'disabled'}) 
+changed: [serverf.lab.example.com] => (item={'port': 4343, 'state': 'disabled'})
+
+RUNNING HANDLER [firewall : reload firewalld] **********************************
+changed: [serverf.lab.example.com]
+
+PLAY RECAP *********************************************************************
+serverf.lab.example.com    : ok=6    changed=5    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+[student@workstation review-cr2]$ cat deploy_apache.yml 
+---
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  become: true
+  gather_facts: false
+
+  roles:
+    # Use the apache_firewall_rules.yml.j2 template to
+    # generate the firewall rules.
+    - role: apache
+      firewall_rules: []
+[student@workstation review-cr2]$ vim deploy_apache.yml
+[student@workstation review-cr2]$ cat deploy_apache.yml
+---
+- name: Ensure Apache is deployed
+  hosts: web_servers
+  force_handlers: true
+  become: true
+  gather_facts: false
+
+  roles:
+    # Use the apache_firewall_rules.yml.j2 template to
+    # generate the firewall rules.
+    - role: apache
+      firewall_rules: "{{ lookup('template', 'apache_firewall_rules.yml.j2') | from_yaml }}"
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ cat templates/apache_firewall_rules.yml.j2 
+- port: {{ apache_port }}
+  protocol: TCP
+  zone: internal
+{% for load_balancer in groups['lb_servers'] %}
+- zone: internal
+  source: "{{ load_balancer_ip_addr }}"
+{% endfor %}
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ vim templates/apache_firewall_rules.yml.j2
+[student@workstation review-cr2]$ cat templates/apache_firewall_rules.yml.j2
+- port: {{ apache_port }}
+  protocol: TCP
+  zone: internal
+{% for load_balancer in groups['lb_servers'] %}
+- zone: internal
+  source: "{{ hostvars[load_balancer]['ansible_facts']['default_ipv4']['address'] }}"
+{% endfor %}
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ cat ansible.cfg 
+[defaults]
+inventory=inventory
+remote_user=devops
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ vim ansible.cfg
+[student@workstation review-cr2]$ cat ansible.cfg
+[defaults]
+inventory=inventory
+remote_user=devops
+callbacks_enabled=timer,profile_tasks
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ cat site.yml 
+---
+- name: Deploy HAProxy
+  import_playbook: deploy_haproxy.yml
+
+- name: Deploy Web Server
+  import_playbook: deploy_apache.yml
+
+- name: Deploy Web App
+  import_playbook: deploy_webapp.yml
+[student@workstation review-cr2]$ ansible-navigator run site.yml 
+[student@workstation review-cr2]$ grep -Rl 'Ensure httpd packages are installed' 
+roles/apache/tasks/main.yml
+site-artifact-2022-03-17T05:51:15.712675+00:00.json
+[student@workstation review-cr2]$ cat roles/apache/tasks/main.yml
+---
+# tasks file for apache
+
+- name: Ensure httpd packages are installed
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - httpd
+    - php
+    - git
+    - php-mysqlnd
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: true
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: true
+
+- name: Ensure configuration is deployed
+  template:
+    src: httpd.conf.j2
+    dest: /etc/httpd/conf/httpd.conf
+    owner: root
+    group: root
+    mode: 0644
+    setype: httpd_config_t
+  notify: restart httpd
+[student@workstation review-cr2]$ vim roles/apache/tasks/main.yml
+[student@workstation review-cr2]$ cat roles/apache/tasks/main.yml
+---
+# tasks file for apache
+
+- name: Ensure httpd packages are installed
+  yum:
+    name:
+      - httpd
+      - php
+      - git
+      - php-mysqlnd
+    state: present
+  tags: apache_installer
+
+- name: Ensure SELinux allows httpd connections to a remote database
+  seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: true
+
+- name: Ensure httpd service is started and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: true
+
+- name: Ensure configuration is deployed
+  template:
+    src: httpd.conf.j2
+    dest: /etc/httpd/conf/httpd.conf
+    owner: root
+    group: root
+    mode: 0644
+    setype: httpd_config_t
+  notify: restart httpd
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ ansible-navigator run site.yml --tags apache_installer
+[student@workstation review-cr2]$ cat update_webapp.yml 
+---
+- name: Upgrade Web Application
+  hosts: web_servers
+  become: true
+  # TODO: Configure max allowable failures
+  # TODO: Configure batches
+
+  # TODO: Add a pre-task to disable each web server
+
+  roles:
+  - role: webapp
+
+  post_tasks:
+    - name: Smoke Test - Ensure HTTP 200 OK
+      uri:
+        url: "http://localhost:{{ apache_port }}"
+        status_code: 200
+      become: true
+
+    # TODO: Add a post-task to re-enable each web server
+[student@workstation review-cr2]$ vim update_webapp.yml
+[student@workstation review-cr2]$ cat update_webapp.yml
+---
+- name: Upgrade Web Application
+  hosts: web_servers
+  become: true
+  # TODO: Configure max allowable failures
+  max_fail_percentage: 0
+  # TODO: Configure batches
+  serial:
+    - "5%"
+    - "35%"
+    - "100%"
+
+  # TODO: Add a pre-task to disable each web server
+  pre_tasks:
+    - name: Remove web server from service during the update
+      community.general.haproxy:
+        state: disabled
+        backend: app
+        host: "{{ inventory_hostname }}"
+      delegate_to: "{{ groups['lb_servers'][0] }}"
+
+  roles:
+  - role: webapp
+
+  post_tasks:
+    - name: Smoke Test - Ensure HTTP 200 OK
+      uri:
+        url: "http://localhost:{{ apache_port }}"
+        status_code: 200
+      become: true
+
+    # TODO: Add a post-task to re-enable each web server
+    - name: Enable healthy server in load balancers
+      community.general.haproxy:
+        state: enabled
+        backend: app
+        host: "{{ inventory_hostname }}"
+      delegate_to: "{{ groups['lb_servers'][0] }}"
+[student@workstation review-cr2]$ 
+[student@workstation review-cr2]$ ansible-navigator run -m stdout update_webapp.yml 
+
+PLAY [Upgrade Web Application] *************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 17 March 2022  06:00:05 +0000 (0:00:00.020)       0:00:00.020 ******** 
+ok: [serverb.lab.example.com]
+
+TASK [Remove web server from service during the update] ************************
+Thursday 17 March 2022  06:00:07 +0000 (0:00:01.519)       0:00:01.540 ******** 
+changed: [serverb.lab.example.com -> servera.lab.example.com]
+
+TASK [webapp : Set webapp facts] ***********************************************
+Thursday 17 March 2022  06:00:08 +0000 (0:00:01.010)       0:00:02.550 ******** 
+ok: [serverb.lab.example.com]
+
+TASK [webapp : Set webapp file whitelist fact] *********************************
+Thursday 17 March 2022  06:00:08 +0000 (0:00:00.033)       0:00:02.583 ******** 
+ok: [serverb.lab.example.com]
+
+TASK [webapp : Get list of remote files in the content directory] **************
+Thursday 17 March 2022  06:00:08 +0000 (0:00:00.117)       0:00:02.701 ******** 
+ok: [serverb.lab.example.com]
+
+TASK [webapp : Remove extraneous remote files] *********************************
+Thursday 17 March 2022  06:00:08 +0000 (0:00:00.635)       0:00:03.336 ******** 
+
+TASK [webapp : Copy webapp content] ********************************************
+Thursday 17 March 2022  06:00:08 +0000 (0:00:00.057)       0:00:03.393 ******** 
+ok: [serverb.lab.example.com] => (item=index.html)
+
+TASK [Smoke Test - Ensure HTTP 200 OK] *****************************************
+Thursday 17 March 2022  06:00:10 +0000 (0:00:01.069)       0:00:04.463 ******** 
+ok: [serverb.lab.example.com]
+
+TASK [Enable healthy server in load balancers] *********************************
+Thursday 17 March 2022  06:00:10 +0000 (0:00:00.799)       0:00:05.263 ******** 
+changed: [serverb.lab.example.com -> servera.lab.example.com]
+
+PLAY [Upgrade Web Application] *************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 17 March 2022  06:00:11 +0000 (0:00:00.614)       0:00:05.877 ******** 
+ok: [serverc.lab.example.com]
+
+TASK [Remove web server from service during the update] ************************
+Thursday 17 March 2022  06:00:12 +0000 (0:00:01.245)       0:00:07.122 ******** 
+changed: [serverc.lab.example.com -> servera.lab.example.com]
+
+TASK [webapp : Set webapp facts] ***********************************************
+Thursday 17 March 2022  06:00:13 +0000 (0:00:00.541)       0:00:07.664 ******** 
+ok: [serverc.lab.example.com]
+
+TASK [webapp : Set webapp file whitelist fact] *********************************
+Thursday 17 March 2022  06:00:13 +0000 (0:00:00.035)       0:00:07.700 ******** 
+ok: [serverc.lab.example.com]
+
+TASK [webapp : Get list of remote files in the content directory] **************
+Thursday 17 March 2022  06:00:13 +0000 (0:00:00.101)       0:00:07.801 ******** 
+ok: [serverc.lab.example.com]
+
+TASK [webapp : Remove extraneous remote files] *********************************
+Thursday 17 March 2022  06:00:13 +0000 (0:00:00.433)       0:00:08.235 ******** 
+
+TASK [webapp : Copy webapp content] ********************************************
+Thursday 17 March 2022  06:00:13 +0000 (0:00:00.054)       0:00:08.289 ******** 
+ok: [serverc.lab.example.com] => (item=index.html)
+
+TASK [Smoke Test - Ensure HTTP 200 OK] *****************************************
+Thursday 17 March 2022  06:00:14 +0000 (0:00:00.800)       0:00:09.090 ******** 
+ok: [serverc.lab.example.com]
+
+TASK [Enable healthy server in load balancers] *********************************
+Thursday 17 March 2022  06:00:15 +0000 (0:00:00.625)       0:00:09.716 ******** 
+changed: [serverc.lab.example.com -> servera.lab.example.com]
+
+PLAY [Upgrade Web Application] *************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 17 March 2022  06:00:15 +0000 (0:00:00.550)       0:00:10.266 ******** 
+ok: [servere.lab.example.com]
+ok: [serverd.lab.example.com]
+ok: [serverf.lab.example.com]
+
+TASK [Remove web server from service during the update] ************************
+Thursday 17 March 2022  06:00:17 +0000 (0:00:01.298)       0:00:11.564 ******** 
+changed: [servere.lab.example.com -> servera.lab.example.com]
+changed: [serverf.lab.example.com -> servera.lab.example.com]
+changed: [serverd.lab.example.com -> servera.lab.example.com]
+
+TASK [webapp : Set webapp facts] ***********************************************
+Thursday 17 March 2022  06:00:18 +0000 (0:00:01.283)       0:00:12.848 ******** 
+ok: [serverd.lab.example.com]
+ok: [servere.lab.example.com]
+ok: [serverf.lab.example.com]
+
+TASK [webapp : Set webapp file whitelist fact] *********************************
+Thursday 17 March 2022  06:00:18 +0000 (0:00:00.117)       0:00:12.965 ******** 
+ok: [serverd.lab.example.com]
+ok: [servere.lab.example.com]
+ok: [serverf.lab.example.com]
+
+TASK [webapp : Get list of remote files in the content directory] **************
+Thursday 17 March 2022  06:00:18 +0000 (0:00:00.128)       0:00:13.094 ******** 
+ok: [servere.lab.example.com]
+ok: [serverd.lab.example.com]
+ok: [serverf.lab.example.com]
+
+TASK [webapp : Remove extraneous remote files] *********************************
+Thursday 17 March 2022  06:00:19 +0000 (0:00:00.563)       0:00:13.657 ******** 
+
+TASK [webapp : Copy webapp content] ********************************************
+Thursday 17 March 2022  06:00:19 +0000 (0:00:00.164)       0:00:13.822 ******** 
+ok: [serverf.lab.example.com] => (item=index.html)
+ok: [serverd.lab.example.com] => (item=index.html)
+ok: [servere.lab.example.com] => (item=index.html)
+
+TASK [Smoke Test - Ensure HTTP 200 OK] *****************************************
+Thursday 17 March 2022  06:00:20 +0000 (0:00:00.905)       0:00:14.728 ******** 
+ok: [servere.lab.example.com]
+ok: [serverd.lab.example.com]
+ok: [serverf.lab.example.com]
+
+TASK [Enable healthy server in load balancers] *********************************
+Thursday 17 March 2022  06:00:21 +0000 (0:00:00.715)       0:00:15.443 ******** 
+changed: [serverd.lab.example.com -> servera.lab.example.com]
+changed: [servere.lab.example.com -> servera.lab.example.com]
+changed: [serverf.lab.example.com -> servera.lab.example.com]
+
+PLAY RECAP *********************************************************************
+serverb.lab.example.com    : ok=8    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+serverc.lab.example.com    : ok=8    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+serverd.lab.example.com    : ok=8    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+servere.lab.example.com    : ok=8    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+serverf.lab.example.com    : ok=8    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+Playbook run took 0 days, 0 hours, 0 minutes, 16 seconds
+Thursday 17 March 2022  06:00:22 +0000 (0:00:01.187)       0:00:16.631 ******** 
+=============================================================================== 
+Gathering Facts --------------------------------------------------------- 1.52s
+Gathering Facts --------------------------------------------------------- 1.30s
+Remove web server from service during the update ------------------------ 1.29s
+Gathering Facts --------------------------------------------------------- 1.24s
+Enable healthy server in load balancers --------------------------------- 1.19s
+webapp : Copy webapp content -------------------------------------------- 0.91s
+Smoke Test - Ensure HTTP 200 OK ----------------------------------------- 0.72s
+webapp : Get list of remote files in the content directory -------------- 0.58s
+webapp : Remove extraneous remote files --------------------------------- 0.15s
+webapp : Set webapp file whitelist fact --------------------------------- 0.13s
+webapp : Set webapp facts ----------------------------------------------- 0.11s
+[student@workstation review-cr2]$ curl servera
+This is serverd. (version v1.0)
+[student@workstation review-cr2]$ curl servera
+This is servere. (version v1.0)
+[student@workstation review-cr2]$ curl servera
+This is serverb. (version v1.0)
+[student@workstation review-cr2]$ curl servera
+This is serverc. (version v1.0)
+[student@workstation review-cr2]$ curl servera
+This is serverf. (version v1.0)
+[student@workstation review-cr2]$ curl servera
+This is serverd. (version v1.0)
+[student@workstation review-cr2]$ curl servera
+This is servere. (version v1.0)
+[student@workstation review-cr2]$ cd
+[student@workstation ~]$ lab grade review-cr2
+
+Grading lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+ · Preparing the system for grading .................................................................................................................................. SUCCESS
+ · Project directory contains the correct Git repository ............................................................................................................. PASS
+ · The ansible.cfg file is correctly configured ...................................................................................................................... PASS
+ · The test playbook for the firewall role runs successfully ......................................................................................................... PASS
+ · The site.yml playbook runs successfully ........................................................................................................................... PASS
+ · The 'apache_port' port is opened on the web servers ............................................................................................................... PASS
+ · HAProxy requests are redirected to the internal zone .............................................................................................................. PASS
+ · The expensive task has been refactored ............................................................................................................................ PASS
+ · The apache_installer tag is correctly configured .................................................................................................................. PASS
+ · The max fail attribute is set in update_webapp.yml ................................................................................................................ PASS
+ · The serial keyword is present ..................................................................................................................................... PASS
+ · The serial keyword is set correctly ............................................................................................................................... PASS
+ · The pre-tasks task is delegated ................................................................................................................................... PASS
+ · The pre-tasks task is delegated correctly ......................................................................................................................... PASS
+ · The pre-tasks haproxy module keys exist ........................................................................................................................... PASS
+ · The pre-tasks haproxy state parameter is set correctly ............................................................................................................ PASS
+ · The post-tasks task is delegated .................................................................................................................................. PASS
+ · The post-tasks task is delegated correctly ........................................................................................................................ PASS
+ · The post-tasks haproxy module keys exist .......................................................................................................................... PASS
+ · The post-tasks haproxy state parameter is set correctly ........................................................................................................... PASS
+ · Cleaning up the system after grading .............................................................................................................................. SUCCESS
+
+Overall lab grade: PASS
+
+[student@workstation ~]$ lab finish review-cr2
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+

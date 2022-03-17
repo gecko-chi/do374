@@ -1,0 +1,970 @@
+[student@workstation ~]$ lab start review-cr3 
+
+Starting lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing local environment ....................................................................................................................................... SUCCESS
+ · Checking GitLab status ............................................................................................................................................ SUCCESS
+ · Backing up the configuration of the systems (be patient) .......................................................................................................... SUCCESS
+ · Configuring Git ................................................................................................................................................... SUCCESS
+ · Creating GitLab project ........................................................................................................................................... SUCCESS
+ · Pushing content to GitLab ......................................................................................................................................... SUCCESS
+ · Ensuring required packages are installed .......................................................................................................................... SUCCESS
+ · Configuring private automation hub for the lab .................................................................................................................... SUCCESS
+ · Subscribing automation controller ................................................................................................................................. SUCCESS
+ · Verifying automation controller is functional ..................................................................................................................... SUCCESS
+ · Creating exercise working directory ............................................................................................................................... SUCCESS
+
+[student@workstation ~]$ ls
+Desktop  Documents  Downloads  git-repos  lab_do374  Music  Pictures  project  Public  review-cr1  review-cr3  Templates  Videos
+[student@workstation ~]$ cd review-cr3/
+[student@workstation review-cr3]$ ls
+Containerfile  examples  lab-resources.txt  roles
+[student@workstation review-cr3]$ tree 
+.
+├── Containerfile
+├── examples
+│   ├── ansible.cfg
+│   └── execution-environment.yml
+├── lab-resources.txt
+└── roles
+    └── iscsi_target_create
+        ├── defaults
+        │   └── main.yml
+        ├── handlers
+        │   └── main.yml
+        ├── meta
+        │   └── main.yml
+        ├── README.md
+        ├── tasks
+        │   └── main.yml
+        ├── templates
+        │   └── saveconfig.json
+        └── tests
+            ├── ansible.cfg
+            ├── inventory
+            └── test.yml
+
+9 directories, 13 files
+[student@workstation review-cr3]$ cat Containerfile 
+ARG EE_BASE_IMAGE=hub.lab.example.com/ee-minimal-rhel8:2.0
+ARG EE_BUILDER_IMAGE=hub.lab.example.com/ansible-builder-rhel8:2.0
+
+FROM $EE_BASE_IMAGE as galaxy
+ARG ANSIBLE_GALAXY_CLI_COLLECTION_OPTS=
+USER root
+
+COPY classroom-ca.pem /etc/pki/ca-trust/source/anchors
+RUN update-ca-trust
+
+ADD _build/ansible.cfg ~/.ansible.cfg
+
+ADD _build /build
+WORKDIR /build
+
+RUN ansible-galaxy role install -r requirements.yml --roles-path /usr/share/ansible/roles
+RUN ansible-galaxy collection install $ANSIBLE_GALAXY_CLI_COLLECTION_OPTS -r requirements.yml --collections-path /usr/share/ansible/collections
+
+FROM $EE_BUILDER_IMAGE as builder
+
+COPY --from=galaxy /usr/share/ansible /usr/share/ansible
+
+RUN ansible-builder introspect --sanitize --write-bindep=/tmp/src/bindep.txt --write-pip=/tmp/src/requirements.txt
+RUN assemble
+
+FROM $EE_BASE_IMAGE
+USER root
+
+COPY --from=galaxy /usr/share/ansible /usr/share/ansible
+
+COPY --from=builder /output/ /output/
+RUN /output/install-from-bindep && rm -rf /output/wheels
+[student@workstation review-cr3]$ ls
+Containerfile  examples  lab-resources.txt  roles
+[student@workstation review-cr3]$ cat lab-resources.txt 
+== Collection
+
+review.system
+
+
+== Private automation hub
+
+     URL: https://hub.lab.example.com
+Username: admin
+Password: redhat
+
+
+== Automation controller
+
+     URL: https://controller.lab.example.com
+Username: admin
+Password: redhat
+
+
+== Automation execution environment
+
+    Base image: hub.lab.example.com/ee-minimal-rhel8:2.0
+ Builder image: hub.lab.example.com/ansible-builder-rhel8:2.0
+Image to build: hub.lab.example.com/system/ee-review-rhel8:v1.0
+
+
+== Classroom TLS CA certificate on workstation
+
+/etc/pki/tls/certs/classroom-ca.pem
+
+
+== Automation controller resources
+
+               --- Credentials ---
+
+              Machine: demohosts (devops/redhat, sudo, root/redhat)
+   Container registry: demohub
+       Source control: demogit
+
+
+               --- Inventory ---
+
+                 Name: demoinv
+                Hosts: serverc.lab.example.com
+
+
+               --- Project ---
+
+                 Name: demoproj
+              Git URL: git@git.lab.example.com:git/review-cr3.git
+
+
+               --- Execution environment ---
+
+                 Name: demoee
+                Image: hub.lab.example.com/system/ee-review-rhel8:v1.0
+
+
+               --- Job template ---
+
+                 Name: demotest
+[student@workstation review-cr3]$ ls
+Containerfile  examples  lab-resources.txt  roles
+[student@workstation review-cr3]$ tree examples/
+examples/
+├── ansible.cfg
+└── execution-environment.yml
+
+0 directories, 2 files
+[student@workstation review-cr3]$ cat examples/ansible.cfg 
+[galaxy]
+server_list = published_repo, rh-certified_repo, community_repo
+
+[galaxy_server.published_repo]
+url=https://hub.lab.example.com/api/galaxy/content/published/
+token=<put your token here>
+
+[galaxy_server.rh-certified_repo]
+url=https://hub.lab.example.com/api/galaxy/content/rh-certified/
+token=<put your token here>
+
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=<put your token here>
+[student@workstation review-cr3]$ cat examples/execution-environment.yml 
+---
+version: 1
+
+build_arg_defaults:
+  EE_BASE_IMAGE: quay.io/ansible/ansible-runner:latest
+  EE_BUILDER_IMAGE: quay.io/ansible/ansible-builder:latest
+
+ansible_config: ansible.cfg
+
+dependencies:
+  galaxy: requirements.yml
+  python: requirements.txt
+  system: bindep.txt
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ ls roles/
+iscsi_target_create
+[student@workstation review-cr3]$ cat roles/iscsi_target_create/
+cat: roles/iscsi_target_create/: Is a directory
+[student@workstation review-cr3]$ tree roles/iscsi_target_create/
+roles/iscsi_target_create/
+├── defaults
+│   └── main.yml
+├── handlers
+│   └── main.yml
+├── meta
+│   └── main.yml
+├── README.md
+├── tasks
+│   └── main.yml
+├── templates
+│   └── saveconfig.json
+└── tests
+    ├── ansible.cfg
+    ├── inventory
+    └── test.yml
+
+6 directories, 9 files
+[student@workstation review-cr3]$ ansible-galaxy collection init review.system
+- Collection review.system was created successfully
+[student@workstation review-cr3]$ ls 
+Containerfile  examples  lab-resources.txt  review  roles
+[student@workstation review-cr3]$ tree review/
+review/
+└── system
+    ├── docs
+    ├── galaxy.yml
+    ├── plugins
+    │   └── README.md
+    ├── README.md
+    └── roles
+
+4 directories, 3 files
+[student@workstation review-cr3]$ mkdir review/system/meta
+[student@workstation review-cr3]$ vim review/system/meta/runtime.yml
+[student@workstation review-cr3]$ cat review/system/meta/runtime.yml
+---
+requires_ansible: '>=2.9.10'
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ ls roles/
+iscsi_target_create
+[student@workstation review-cr3]$ cp -r roles/iscsi_target_create review/system/
+[student@workstation review-cr3]$ cp -r roles/iscsi_target_create review/system/roles/
+[student@workstation review-cr3]$ ls review/system/
+docs  galaxy.yml  iscsi_target_create  meta  plugins  README.md  roles
+[student@workstation review-cr3]$ rm -rf review/system/iscsi_target_create
+[student@workstation review-cr3]$ ls review/system/
+docs  galaxy.yml  meta  plugins  README.md  roles
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ ls review/system/roles/
+iscsi_target_create
+[student@workstation review-cr3]$ cat review/system/galaxy.yml 
+### REQUIRED
+# The namespace of the collection. This can be a company/brand/organization or product namespace under which all
+# content lives. May only contain alphanumeric lowercase characters and underscores. Namespaces cannot start with
+# underscores or numbers and cannot contain consecutive underscores
+namespace: review
+
+# The name of the collection. Has the same character restrictions as 'namespace'
+name: system
+
+# The version of the collection. Must be compatible with semantic versioning
+version: 1.0.0
+
+# The path to the Markdown (.md) readme file. This path is relative to the root of the collection
+readme: README.md
+
+# A list of the collection's content authors. Can be just the name or in the format 'Full Name <email> (url)
+# @nicks:irc/im.site#channel'
+authors:
+- your name <example@domain.com>
+
+
+### OPTIONAL but strongly recommended
+# A short summary description of the collection
+description: your collection description
+
+# Either a single license or a list of licenses for content inside of a collection. Ansible Galaxy currently only
+# accepts L(SPDX,https://spdx.org/licenses/) licenses. This key is mutually exclusive with 'license_file'
+license:
+- GPL-2.0-or-later
+
+# The path to the license file for the collection. This path is relative to the root of the collection. This key is
+# mutually exclusive with 'license'
+license_file: ''
+
+# A list of tags you want to associate with the collection for indexing/searching. A tag name has the same character
+# requirements as 'namespace' and 'name'
+tags: []
+
+# Collections that this collection requires to be installed for it to be usable. The key of the dict is the
+# collection label 'namespace.name'. The value is a version range
+# L(specifiers,https://python-semanticversion.readthedocs.io/en/latest/#requirement-specification). Multiple version
+# range specifiers can be set and are separated by ','
+dependencies: {}
+
+# The URL of the originating SCM repository
+repository: http://example.com/repository
+
+# The URL to any online docs
+documentation: http://docs.example.com
+
+# The URL to the homepage of the collection/project
+homepage: http://example.com
+
+# The URL to the collection issue tracker
+issues: http://example.com/issue/tracker
+
+# A list of file glob-like patterns used to filter any files or directories that should not be included in the build
+# artifact. A pattern is matched from the relative path of the file or directory of the collection directory. This
+# uses 'fnmatch' to match the files or directories. Some directories and files like 'galaxy.yml', '*.pyc', '*.retry',
+# and '.git' are always filtered
+build_ignore: []
+
+[student@workstation review-cr3]$ cat review/system/galaxy.yml  | grep -C3 dependencies
+# collection label 'namespace.name'. The value is a version range
+# L(specifiers,https://python-semanticversion.readthedocs.io/en/latest/#requirement-specification). Multiple version
+# range specifiers can be set and are separated by ','
+dependencies: {}
+
+# The URL of the originating SCM repository
+repository: http://example.com/repository
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ vim review/system/galaxy.yml 
+[student@workstation review-cr3]$ cat review/system/galaxy.yml  | grep -C3 dependencies
+# collection label 'namespace.name'. The value is a version range
+# L(specifiers,https://python-semanticversion.readthedocs.io/en/latest/#requirement-specification). Multiple version
+# range specifiers can be set and are separated by ','
+dependencies:
+  ansible.posix: '>=1.0.0'
+
+# The URL of the originating SCM repository
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ cd review/system/
+[student@workstation system]$ ls
+docs  galaxy.yml  meta  plugins  README.md  roles
+[student@workstation system]$ pw
+bash: pw: command not found...
+[student@workstation system]$ pwd
+/home/student/review-cr3/review/system
+[student@workstation system]$ 
+[student@workstation system]$ ansible-galaxy collection build
+Created collection for review.system at /home/student/review-cr3/review/system/review-system-1.0.0.tar.gz
+[student@workstation system]$ ls
+docs  galaxy.yml  meta  plugins  README.md  review-system-1.0.0.tar.gz  roles
+[student@workstation system]$ cp review-system-1.0.0.tar.gz ~/review-cr3/
+[student@workstation system]$ firefox https://hub.lab.example.com & 
+[1] 70577
+[student@workstation system]$ cd ~/review-cr3/
+[student@workstation review-cr3]$ ls
+Containerfile  examples  lab-resources.txt  review  review-system-1.0.0.tar.gz  roles
+[student@workstation review-cr3]$ pwd
+/home/student/review-cr3
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ mkdir ee-build
+[student@workstation review-cr3]$ cp examples/execution-environment.yml ee-build/
+[student@workstation review-cr3]$ ls ee-build/
+execution-environment.yml
+[student@workstation review-cr3]$ vim ee-build/execution-environment.yml 
+[student@workstation review-cr3]$ cat ee-build/execution-environment.yml
+---
+version: 1
+
+build_arg_defaults:
+  EE_BASE_IMAGE: quay.io/ansible/ansible-runner:latest
+  EE_BUILDER_IMAGE: quay.io/ansible/ansible-builder:latest
+
+ansible_config: ansible.cfg
+
+dependencies:
+  galaxy: requirements.yml
+  python: requirements.txt
+  system: bindep.txt
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ vim ee-build/execution-environment.yml 
+[student@workstation review-cr3]$ cat ee-build/execution-environment.yml
+---
+version: 1
+
+build_arg_defaults:
+  EE_BASE_IMAGE: hub.lab.example.com/ee-minimal-rhel8:2.0 
+  EE_BUILDER_IMAGE: hub.lab.example.com/ansible-builder-rhel8:2.0
+
+ansible_config: ansible.cfg
+
+dependencies:
+  galaxy: requirements.yml
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ vim ee-build/requirements.yml
+[student@workstation review-cr3]$ cat ee-build/requirements.yml
+---
+collections:
+  - name: review.system
+  - name: community.general
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ cd ee-build/
+[student@workstation ee-build]$ ls
+execution-environment.yml  requirements.yml
+[student@workstation ee-build]$ cp ~/review-cr3/examples/ansible.cfg .
+[student@workstation ee-build]$ cat .
+cat: .: Is a directory
+[student@workstation ee-build]$ cat ansible.cfg 
+[galaxy]
+server_list = published_repo, rh-certified_repo, community_repo
+
+[galaxy_server.published_repo]
+url=https://hub.lab.example.com/api/galaxy/content/published/
+token=<put your token here>
+
+[galaxy_server.rh-certified_repo]
+url=https://hub.lab.example.com/api/galaxy/content/rh-certified/
+token=<put your token here>
+
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=<put your token here>
+[student@workstation ee-build]$ vim ansible.cfg 
+[student@workstation ee-build]$ cat ansible.cfg
+[galaxy]
+server_list = published_repo, rh-certified_repo, community_repo
+
+[galaxy_server.published_repo]
+url=https://hub.lab.example.com/api/galaxy/content/published/
+token=7d8bf2f3f8e00d8c433d8fe1a6563dd9f811d7a5
+
+[galaxy_server.rh-certified_repo]
+url=https://hub.lab.example.com/api/galaxy/content/rh-certified/
+token=7d8bf2f3f8e00d8c433d8fe1a6563dd9f811d7a5
+
+[galaxy_server.community_repo]
+url=https://hub.lab.example.com/api/galaxy/content/community/
+token=7d8bf2f3f8e00d8c433d8fe1a6563dd9f811d7a5
+[student@workstation ee-build]$ 
+[student@workstation ee-build]$ 
+[student@workstation ee-build]$ 
+[student@workstation ee-build]$ sudo yum install ansible-builder
+[sudo] password for student: 
+Last metadata expiration check: 0:40:02 ago on Thu 17 Mar 2022 02:01:01 AM EDT.
+Dependencies resolved.
+================================================================================================================================================================================
+ Package                                  Architecture       Version                      Repository                                                                       Size
+================================================================================================================================================================================
+Installing:
+ ansible-builder                          noarch             1.0.1-1.el8ap                ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms              37 k
+Installing dependencies:
+ python38-requirements-parser             noarch             0.2.0-3.el8ap                ansible-automation-platform-2.0-early-access-for-rhel-8-x86_64-rpms              20 k
+
+Transaction Summary
+================================================================================================================================================================================
+Install  2 Packages
+
+Total download size: 58 k
+Installed size: 116 k
+Is this ok [y/N]: y
+Downloading Packages:
+(1/2): python38-requirements-parser-0.2.0-3.el8ap.noarch.rpm                                                                                    2.4 MB/s |  20 kB     00:00    
+(2/2): ansible-builder-1.0.1-1.el8ap.noarch.rpm                                                                                                 3.5 MB/s |  37 kB     00:00    
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Total                                                                                                                                           4.7 MB/s |  58 kB     00:00     
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                                                                                                                        1/1 
+  Installing       : python38-requirements-parser-0.2.0-3.el8ap.noarch                                                                                                      1/2 
+  Installing       : ansible-builder-1.0.1-1.el8ap.noarch                                                                                                                   2/2 
+  Running scriptlet: ansible-builder-1.0.1-1.el8ap.noarch                                                                                                                   2/2 
+  Verifying        : python38-requirements-parser-0.2.0-3.el8ap.noarch                                                                                                      1/2 
+  Verifying        : ansible-builder-1.0.1-1.el8ap.noarch                                                                                                                   2/2 
+
+Installed:
+  ansible-builder-1.0.1-1.el8ap.noarch                                             python38-requirements-parser-0.2.0-3.el8ap.noarch                                            
+
+Complete!
+[student@workstation ee-build]$ ls
+ansible.cfg  execution-environment.yml  requirements.yml
+[student@workstation ee-build]$ ansible-builder create 
+Complete! The build context can be found at: /home/student/review-cr3/ee-build/context
+[student@workstation ee-build]$ ls
+ansible.cfg  context  execution-environment.yml  requirements.yml
+[student@workstation ee-build]$ tree 
+.
+├── ansible.cfg
+├── context
+│   ├── _build
+│   │   ├── ansible.cfg
+│   │   └── requirements.yml
+│   └── Containerfile
+├── execution-environment.yml
+└── requirements.yml
+
+2 directories, 6 files
+[student@workstation ee-build]$ cp ~/review-cr3/Containerfile context/
+[student@workstation ee-build]$ cp /etc/pki/tls/certs/classroom-ca.pem context/
+[student@workstation ee-build]$ tree 
+.
+├── ansible.cfg
+├── context
+│   ├── _build
+│   │   ├── ansible.cfg
+│   │   └── requirements.yml
+│   ├── classroom-ca.pem
+│   └── Containerfile
+├── execution-environment.yml
+└── requirements.yml
+
+2 directories, 7 files
+[student@workstation ee-build]$ podman login hub.lab.example.com 
+Authenticating with existing credentials...
+Existing credentials are valid. Already logged in to hub.lab.example.com
+[student@workstation ee-build]$ 
+[student@workstation ee-build]$ 
+[student@workstation ee-build]$ podman logout hub.lab.example.com
+Removed login credentials for hub.lab.example.com
+[student@workstation ee-build]$ 
+[student@workstation ee-build]$ 
+[student@workstation ee-build]$ podman login hub.lab.example.com 
+Username: admin
+Password: 
+Login Succeeded!
+[student@workstation ee-build]$ podman images 
+REPOSITORY                              TAG     IMAGE ID      CREATED       SIZE
+hub.lab.example.com/ee-supported-rhel8  2.0     00aa4b51e90f  4 months ago  1.07 GB
+[student@workstation ee-build]$ podman build -f context/Containerfile -t hub.lab.example.com/system/ee-review-rhel8:v1.0 context 
+STEP 1: FROM hub.lab.example.com/ee-minimal-rhel8:2.0 AS galaxy
+Getting image source signatures
+Copying blob 5c4402ce71c4 skipped: already exists  
+Copying blob 00fe5380b165 [--------------------------------------] 0.0b / 0.0b
+Copying blob 80be453030cf [--------------------------------------] 0.0b / 0.0b
+Copying blob 69ebc448681d [--------------------------------------] 0.0b / 0.0b
+Copying config 9fd78d66bb done  
+Writing manifest to image destination
+Storing signatures
+STEP 2: ARG ANSIBLE_GALAXY_CLI_COLLECTION_OPTS=
+--> e807eabc99c
+STEP 3: USER root
+--> af2c5fcd1da
+STEP 4: COPY classroom-ca.pem /etc/pki/ca-trust/source/anchors
+--> c3b2780cb06
+STEP 5: RUN update-ca-trust
+--> eaf63b7b510
+STEP 6: ADD _build/ansible.cfg ~/.ansible.cfg
+--> a627b40f8ec
+STEP 7: ADD _build /build
+--> 1c6af22d7b4
+STEP 8: WORKDIR /build
+--> 32b357dba16
+STEP 9: RUN ansible-galaxy role install -r requirements.yml --roles-path /usr/share/ansible/roles
+Skipping install, no requirements found
+--> 97c3e436476
+STEP 10: RUN ansible-galaxy collection install $ANSIBLE_GALAXY_CLI_COLLECTION_OPTS -r requirements.yml --collections-path /usr/share/ansible/collections
+Starting galaxy collection install process
+Process install dependency map
+Starting collection install process
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/published/review-system-1.0.0.tar.gz to /home/runner/.ansible/tmp/ansible-local-1z_5i51jp/tmpb3ro_btz/review-system-1.0.0-1s7mqywk
+Installing 'review.system:1.0.0' to '/usr/share/ansible/collections/ansible_collections/review/system'
+review.system:1.0.0 was installed successfully
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/rh-certified/ansible-posix-1.3.0.tar.gz to /home/runner/.ansible/tmp/ansible-local-1z_5i51jp/tmpb3ro_btz/ansible-posix-1.3.0-rkid708j
+Installing 'ansible.posix:1.3.0' to '/usr/share/ansible/collections/ansible_collections/ansible/posix'
+ansible.posix:1.3.0 was installed successfully
+Downloading https://hub.lab.example.com/api/galaxy/v3/artifacts/collections/community/community-general-4.3.0.tar.gz to /home/runner/.ansible/tmp/ansible-local-1z_5i51jp/tmpb3ro_btz/community-general-4.3.0-7zm__w40
+Installing 'community.general:4.3.0' to '/usr/share/ansible/collections/ansible_collections/community/general'
+community.general:4.3.0 was installed successfully
+--> be4de9a5f65
+STEP 11: FROM hub.lab.example.com/ansible-builder-rhel8:2.0 AS builder
+Getting image source signatures
+Copying blob 00fe5380b165 skipped: already exists  
+Copying blob 69ebc448681d skipped: already exists  
+Copying blob 80be453030cf skipped: already exists  
+Copying blob d4aa8f5a8722 done  
+Copying config 6058525938 done  
+Writing manifest to image destination
+Storing signatures
+STEP 12: COPY --from=galaxy /usr/share/ansible /usr/share/ansible
+--> 8b93caa5995
+STEP 13: RUN ansible-builder introspect --sanitize --write-bindep=/tmp/src/bindep.txt --write-pip=/tmp/src/requirements.txt
+# Sanitized dependencies for /usr/share/ansible/collections
+---
+python: []
+system: []
+
+--> 0cce0bc0cdf
+STEP 14: RUN assemble
+++ source /etc/os-release
++++ NAME='Red Hat Enterprise Linux'
++++ VERSION='8.5 (Ootpa)'
++++ ID=rhel
++++ ID_LIKE=fedora
++++ VERSION_ID=8.5
++++ PLATFORM_ID=platform:el8
++++ PRETTY_NAME='Red Hat Enterprise Linux 8.5 (Ootpa)'
++++ ANSI_COLOR='0;31'
++++ CPE_NAME=cpe:/o:redhat:enterprise_linux:8::baseos
++++ HOME_URL=https://www.redhat.com/
++++ DOCUMENTATION_URL=https://access.redhat.com/documentation/red_hat_enterprise_linux/8/
++++ BUG_REPORT_URL=https://bugzilla.redhat.com/
++++ REDHAT_BUGZILLA_PRODUCT='Red Hat Enterprise Linux 8'
++++ REDHAT_BUGZILLA_PRODUCT_VERSION=8.5
++++ REDHAT_SUPPORT_PRODUCT='Red Hat Enterprise Linux'
++++ REDHAT_SUPPORT_PRODUCT_VERSION=8.5
+++ echo rhel
++ RELEASE=rhel
++ PKGMGR=
++ PKGMGR_OPTS=
++ '[' -z ']'
++ PKGMGR=/usr/bin/dnf
++ '[' -f /usr/bin/microdnf ']'
++ PKGMGR=/usr/bin/microdnf
++ '[' -z ']'
++ PKGMGR_OPTS='--nodocs --setopt install_weak_deps=0'
++ mkdir -p /output/bindep
++ mkdir -p /output/wheels
++ mkdir -p /tmp/src
++ cd /tmp/src
++ /usr/bin/microdnf update -y
+
+(microdnf:11): librhsm-WARNING **: 06:44:22.201: Found 0 entitlement certificates
+
+(microdnf:11): librhsm-WARNING **: 06:44:22.202: Found 0 entitlement certificates
+Downloading metadata...
+Downloading metadata...
+Downloading metadata...
+Package                                                Repository       Size
+Installing:                                                                 
+ openssl-1:1.1.1k-5.el8_5.x86_64                       ubi-8-baseos 725.6 kB
+ openssl-pkcs11-0.4.10-2.el8.x86_64                    ubi-8-baseos  67.5 kB
+Upgrading:                                                                  
+ cyrus-sasl-lib-2.1.27-6.el8_5.x86_64                  ubi-8-baseos 126.3 kB
+  replacing cyrus-sasl-lib-2.1.27-5.el8.x86_64                              
+ expat-2.2.5-4.el8_5.3.x86_64                          ubi-8-baseos 115.5 kB
+  replacing expat-2.2.5-4.el8.x86_64                                        
+ glibc-2.28-164.el8_5.3.x86_64                         ubi-8-baseos   3.8 MB
+  replacing glibc-2.28-164.el8.x86_64                                       
+ glibc-common-2.28-164.el8_5.3.x86_64                  ubi-8-baseos   1.4 MB
+  replacing glibc-common-2.28-164.el8.x86_64                                
+ glibc-langpack-en-2.28-164.el8_5.3.x86_64             ubi-8-baseos 848.4 kB
+  replacing glibc-langpack-en-2.28-164.el8.x86_64                           
+ glibc-minimal-langpack-2.28-164.el8_5.3.x86_64        ubi-8-baseos  59.5 kB
+  replacing glibc-minimal-langpack-2.28-164.el8.x86_64                      
+ libarchive-3.3.3-3.el8_5.x86_64                       ubi-8-baseos 368.6 kB
+  replacing libarchive-3.3.3-1.el8.x86_64                                   
+ libxml2-2.9.7-12.el8_5.x86_64                         ubi-8-baseos 712.8 kB
+  replacing libxml2-2.9.7-9.el8_4.2.x86_64                                  
+ openssl-libs-1:1.1.1k-5.el8_5.x86_64                  ubi-8-baseos   1.5 MB
+  replacing openssl-libs-1:1.1.1k-4.el8.x86_64                              
+ rpm-4.14.3-19.el8_5.2.x86_64                          ubi-8-baseos 556.0 kB
+  replacing rpm-4.14.3-19.el8.x86_64                                        
+ rpm-libs-4.14.3-19.el8_5.2.x86_64                     ubi-8-baseos 353.1 kB
+  replacing rpm-libs-4.14.3-19.el8.x86_64                                   
+ systemd-libs-239-51.el8_5.5.x86_64                    ubi-8-baseos   1.1 MB
+   replacing systemd-libs-239-51.el8.x86_64                                 
+Transaction Summary:
+ Installing:        2 packages
+ Reinstalling:      0 packages
+ Upgrading:        12 packages
+ Obsoleting:        0 packages
+ Removing:          0 packages
+ Downgrading:       0 packages
+Downloading packages...
+Running transaction test...
+Updating: glibc-langpack-en;2.28-164.el8_5.3;x86_64;ubi-8-baseos
+Updating: glibc;2.28-164.el8_5.3;x86_64;ubi-8-baseos
+Updating: glibc-common;2.28-164.el8_5.3;x86_64;ubi-8-baseos
+Updating: openssl-libs;1:1.1.1k-5.el8_5;x86_64;ubi-8-baseos
+Installing: openssl;1:1.1.1k-5.el8_5;x86_64;ubi-8-baseos
+Installing: openssl-pkcs11;0.4.10-2.el8;x86_64;ubi-8-baseos
+Updating: libxml2;2.9.7-12.el8_5;x86_64;ubi-8-baseos
+Updating: libarchive;3.3.3-3.el8_5;x86_64;ubi-8-baseos
+Updating: rpm-libs;4.14.3-19.el8_5.2;x86_64;ubi-8-baseos
+Updating: rpm;4.14.3-19.el8_5.2;x86_64;ubi-8-baseos
+Updating: systemd-libs;239-51.el8_5.5;x86_64;ubi-8-baseos
+Updating: glibc-minimal-langpack;2.28-164.el8_5.3;x86_64;ubi-8-baseos
+Updating: expat;2.2.5-4.el8_5.3;x86_64;ubi-8-baseos
+Updating: cyrus-sasl-lib;2.1.27-6.el8_5;x86_64;ubi-8-baseos
+Cleanup: systemd-libs;239-51.el8;x86_64;installed
+Cleanup: rpm-libs;4.14.3-19.el8;x86_64;installed
+Cleanup: cyrus-sasl-lib;2.1.27-5.el8;x86_64;installed
+Cleanup: rpm;4.14.3-19.el8;x86_64;installed
+Cleanup: libarchive;3.3.3-1.el8;x86_64;installed
+Cleanup: openssl-libs;1:1.1.1k-4.el8;x86_64;installed
+Cleanup: libxml2;2.9.7-9.el8_4.2;x86_64;installed
+Cleanup: expat;2.2.5-4.el8;x86_64;installed
+Cleanup: glibc-minimal-langpack;2.28-164.el8;x86_64;installed
+Cleanup: glibc-langpack-en;2.28-164.el8;x86_64;installed
+Cleanup: glibc;2.28-164.el8;x86_64;installed
+Cleanup: glibc-common;2.28-164.el8;x86_64;installed
+Complete.
++ PACKAGES=
++ PIP_OPTS=
++ install_bindep
++ '[' -f bindep.txt ']'
++ python3 -m venv /tmp/venv --system-site-packages --without-pip
++ source /tmp/venv/bin/activate
+++ deactivate nondestructive
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ '[' -n /bin/bash -o -n '' ']'
+++ hash -r
+++ '[' -n '' ']'
+++ unset VIRTUAL_ENV
+++ '[' '!' nondestructive = nondestructive ']'
+++ VIRTUAL_ENV=/tmp/venv
+++ export VIRTUAL_ENV
+++ _OLD_VIRTUAL_PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/tmp/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export PATH
+++ '[' -n '' ']'
+++ '[' -z '' ']'
+++ _OLD_VIRTUAL_PS1=
+++ '[' 'x(venv) ' '!=' x ']'
+++ PS1='(venv) '
+++ export PS1
+++ '[' -n /bin/bash -o -n '' ']'
+++ hash -r
++ '[' -f /tmp/src/upper-constraints.txt ']'
++ [[ -n '' ]]
++ install_wheels
++ '[' -f /tmp/src/build-requirements.txt ']'
++ '[' -f setup.py ']'
++ '[' -f /tmp/src/requirements.txt ']'
+++ wc -l
+++ ls -1 '/output/wheels/*whl'
++ '[' 0 -gt 0 ']'
+++ get-extras-packages
++ /usr/bin/microdnf clean all
+
+(microdnf:87): librhsm-WARNING **: 06:44:30.209: Found 0 entitlement certificates
+
+(microdnf:87): librhsm-WARNING **: 06:44:30.211: Found 0 entitlement certificates
+Complete.
++ rm -rf /var/cache/dnf /var/cache/yum
++ rm -rf /var/lib/dnf/history.sqlite /var/lib/dnf/history.sqlite-shm /var/lib/dnf/history.sqlite-wal
++ rm -rf '/var/log/dnf.*' /var/log/hawkey.log
++ rm -rf /tmp/venv
+--> 1502724e40c
+STEP 15: FROM hub.lab.example.com/ee-minimal-rhel8:2.0
+STEP 16: USER root
+--> 43a2f18d758
+STEP 17: COPY --from=galaxy /usr/share/ansible /usr/share/ansible
+--> e0b4d4bdeb5
+STEP 18: COPY --from=builder /output/ /output/
+--> 9b05b2dad02
+STEP 19: RUN /output/install-from-bindep && rm -rf /output/wheels
++ PKGMGR=
++ PKGMGR_OPTS=
++ '[' -z ']'
++ PKGMGR=/usr/bin/dnf
++ '[' -f /usr/bin/microdnf ']'
++ PKGMGR=/usr/bin/microdnf
++ '[' -z ']'
++ PKGMGR_OPTS='--nodocs --setopt install_weak_deps=0'
++ /usr/bin/microdnf update -y --nodocs --setopt install_weak_deps=0
+
+(microdnf:9): librhsm-WARNING **: 06:44:47.268: Found 0 entitlement certificates
+
+(microdnf:9): librhsm-WARNING **: 06:44:47.270: Found 0 entitlement certificates
+Downloading metadata...
+Downloading metadata...
+Downloading metadata...
+Package                                                Repository       Size
+Upgrading:                                                                  
+ cyrus-sasl-lib-2.1.27-6.el8_5.x86_64                  ubi-8-baseos 126.3 kB
+  replacing cyrus-sasl-lib-2.1.27-5.el8.x86_64                              
+ expat-2.2.5-4.el8_5.3.x86_64                          ubi-8-baseos 115.5 kB
+  replacing expat-2.2.5-4.el8.x86_64                                        
+ glibc-2.28-164.el8_5.3.x86_64                         ubi-8-baseos   3.8 MB
+  replacing glibc-2.28-164.el8.x86_64                                       
+ glibc-common-2.28-164.el8_5.3.x86_64                  ubi-8-baseos   1.4 MB
+  replacing glibc-common-2.28-164.el8.x86_64                                
+ glibc-langpack-en-2.28-164.el8_5.3.x86_64             ubi-8-baseos 848.4 kB
+  replacing glibc-langpack-en-2.28-164.el8.x86_64                           
+ glibc-minimal-langpack-2.28-164.el8_5.3.x86_64        ubi-8-baseos  59.5 kB
+  replacing glibc-minimal-langpack-2.28-164.el8.x86_64                      
+ libarchive-3.3.3-3.el8_5.x86_64                       ubi-8-baseos 368.6 kB
+  replacing libarchive-3.3.3-1.el8.x86_64                                   
+ libxml2-2.9.7-12.el8_5.x86_64                         ubi-8-baseos 712.8 kB
+  replacing libxml2-2.9.7-9.el8_4.2.x86_64                                  
+ openssl-libs-1:1.1.1k-5.el8_5.x86_64                  ubi-8-baseos   1.5 MB
+  replacing openssl-libs-1:1.1.1k-4.el8.x86_64                              
+ rpm-4.14.3-19.el8_5.2.x86_64                          ubi-8-baseos 556.0 kB
+  replacing rpm-4.14.3-19.el8.x86_64                                        
+ rpm-libs-4.14.3-19.el8_5.2.x86_64                     ubi-8-baseos 353.1 kB
+  replacing rpm-libs-4.14.3-19.el8.x86_64                                   
+ systemd-libs-239-51.el8_5.5.x86_64                    ubi-8-baseos   1.1 MB
+   replacing systemd-libs-239-51.el8.x86_64                                 
+Transaction Summary:
+ Installing:        0 packages
+ Reinstalling:      0 packages
+ Upgrading:        12 packages
+ Obsoleting:        0 packages
+ Removing:          0 packages
+ Downgrading:       0 packages
+Downloading packages...
+Running transaction test...
+Updating: glibc-langpack-en;2.28-164.el8_5.3;x86_64;ubi-8-baseos
+Updating: glibc;2.28-164.el8_5.3;x86_64;ubi-8-baseos
+Updating: glibc-common;2.28-164.el8_5.3;x86_64;ubi-8-baseos
+Updating: openssl-libs;1:1.1.1k-5.el8_5;x86_64;ubi-8-baseos
+Updating: libxml2;2.9.7-12.el8_5;x86_64;ubi-8-baseos
+Updating: libarchive;3.3.3-3.el8_5;x86_64;ubi-8-baseos
+Updating: rpm-libs;4.14.3-19.el8_5.2;x86_64;ubi-8-baseos
+Updating: rpm;4.14.3-19.el8_5.2;x86_64;ubi-8-baseos
+Updating: systemd-libs;239-51.el8_5.5;x86_64;ubi-8-baseos
+Updating: glibc-minimal-langpack;2.28-164.el8_5.3;x86_64;ubi-8-baseos
+Updating: expat;2.2.5-4.el8_5.3;x86_64;ubi-8-baseos
+Updating: cyrus-sasl-lib;2.1.27-6.el8_5;x86_64;ubi-8-baseos
+Cleanup: systemd-libs;239-51.el8;x86_64;installed
+Cleanup: rpm-libs;4.14.3-19.el8;x86_64;installed
+Cleanup: cyrus-sasl-lib;2.1.27-5.el8;x86_64;installed
+Cleanup: rpm;4.14.3-19.el8;x86_64;installed
+Cleanup: libarchive;3.3.3-1.el8;x86_64;installed
+Cleanup: openssl-libs;1:1.1.1k-4.el8;x86_64;installed
+Cleanup: libxml2;2.9.7-9.el8_4.2;x86_64;installed
+Cleanup: expat;2.2.5-4.el8;x86_64;installed
+Cleanup: glibc-minimal-langpack;2.28-164.el8;x86_64;installed
+Cleanup: glibc-langpack-en;2.28-164.el8;x86_64;installed
+Cleanup: glibc;2.28-164.el8;x86_64;installed
+Cleanup: glibc-common;2.28-164.el8;x86_64;installed
+Complete.
++ '[' -f /output/bindep/run.txt ']'
++ '[' -f /output/bindep/epel.txt ']'
++ '[' -f /output/upper-constraints.txt ']'
++ '[' -f /output/requirements.txt ']'
++ EXTRAS=
++ '[' -f /output/packages.txt ']'
+++ wc -l
+++ ls -1 '/output/wheels/*whl'
++ '[' 0 -gt 0 ']'
++ '[' '!' -z '' ']'
++ /usr/bin/microdnf clean all
+
+(microdnf:83): librhsm-WARNING **: 06:44:54.618: Found 0 entitlement certificates
+
+(microdnf:83): librhsm-WARNING **: 06:44:54.619: Found 0 entitlement certificates
+Complete.
++ rm -rf /var/cache/dnf /var/cache/yum
++ rm -rf /var/lib/dnf/history.sqlite /var/lib/dnf/history.sqlite-shm /var/lib/dnf/history.sqlite-wal
++ rm -rf '/var/log/dnf.*' /var/log/hawkey.log
+STEP 20: COMMIT hub.lab.example.com/system/ee-review-rhel8:v1.0
+--> 6dc19740add
+6dc19740add4b383c33dfb87f4a6fa44c116035f09cb184aadd1bf148d6852c2
+[student@workstation ee-build]$ podman images
+REPOSITORY                                  TAG     IMAGE ID      CREATED             SIZE
+hub.lab.example.com/system/ee-review-rhel8  v1.0    6dc19740add4  17 seconds ago      471 MB
+<none>                                      <none>  1502724e40cc  41 seconds ago      440 MB
+<none>                                      <none>  be4de9a5f651  About a minute ago  413 MB
+hub.lab.example.com/ee-supported-rhel8      2.0     00aa4b51e90f  4 months ago        1.07 GB
+hub.lab.example.com/ee-minimal-rhel8        2.0     9fd78d66bbe3  4 months ago        396 MB
+hub.lab.example.com/ansible-builder-rhel8   2.0     605852593855  4 months ago        363 MB
+[student@workstation ee-build]$ podman push hub.lab.example.com/system/ee-review-rhel8:v1.0 
+Getting image source signatures
+Copying blob 8c370a7c9cba done  
+Copying blob 1eee620108a2 done  
+Copying blob efebe3fe0d93 done  
+Copying blob af092941766c done  
+Copying blob fa751636af06 done  
+Copying blob a65a1b01a4d2 done  
+Copying blob 6a87e4bc5b96 done  
+Copying config 6dc19740ad done  
+Writing manifest to image destination
+Storing signatures
+[student@workstation ee-build]$ mkdir -p ~/git-repos
+[student@workstation ee-build]$ cd ~/git-repos
+[student@workstation git-repos]$ ls
+review-cr2
+[student@workstation git-repos]$ git clone https://git.lab.example.com/git/review-cr3.git
+Cloning into 'review-cr3'...
+remote: Enumerating objects: 3, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (3/3), 357 bytes | 357.00 KiB/s, done.
+[student@workstation git-repos]$ ls
+review-cr2  review-cr3
+[student@workstation git-repos]$ cd review-cr3/
+[student@workstation review-cr3]$ ls
+demo.yml
+[student@workstation review-cr3]$ cat demo.yml 
+---
+- name: Testing the iscsi_target_create role in the review.system collection
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Ensure the iSCSI target is configured
+      include_role:
+        name: #FIXME#
+      vars:
+        #FIXME#: vdb
+...
+[student@workstation review-cr3]$ git checkout -b exercise
+Switched to a new branch 'exercise'
+[student@workstation review-cr3]$ vim demo.yml 
+[student@workstation review-cr3]$ cat demo.yml
+---
+- name: Testing the iscsi_target_create role in the review.system collection
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Ensure the iSCSI target is configured
+      include_role:
+        name: review.system.iscsi_target_create
+      vars:
+        iscsi_target_create_disk: vdb
+...
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ git add demo.yml 
+[student@workstation review-cr3]$ git commit -m "Updating the demo playbook"
+[exercise b067c3a] Updating the demo playbook
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+[student@workstation review-cr3]$ git push -u origin exercise
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (2/2), done.
+Writing objects: 100% (3/3), 343 bytes | 343.00 KiB/s, done.
+Total 3 (delta 1), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: To create a merge request for exercise, visit:
+remote:   https://git.lab.example.com/git/review-cr3/-/merge_requests/new?merge_request%5Bsource_branch%5D=exercise
+remote: 
+To https://git.lab.example.com/git/review-cr3.git
+ * [new branch]      exercise -> exercise
+Branch 'exercise' set up to track remote branch 'exercise' from 'origin'.
+[student@workstation review-cr3]$ firefox https://controller.lab.example.com & 
+[2] 75360
+[student@workstation review-cr3]$ ssh serverc ls /etc/target/saveconfig.json
+/etc/target/saveconfig.json
+[2]+  Done                    firefox https://controller.lab.example.com
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ 
+[student@workstation review-cr3]$ cd
+[student@workstation ~]$ lab grade review-cr3 
+
+Grading lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Preparing the workstation system .................................................................................................................................. SUCCESS
+ · Preparing private automation hub .................................................................................................................................. SUCCESS
+ · Preparing automation controller ................................................................................................................................... SUCCESS
+ · The "review.system" collection is correctly created ............................................................................................................... PASS
+ · The "review" namespace exists ..................................................................................................................................... PASS
+ · The "review.system" collection is published ....................................................................................................................... PASS
+ · The custom container image exists ................................................................................................................................. PASS
+ · The container image is correctly created .......................................................................................................................... PASS
+ · The "demohosts" machine credential exists ......................................................................................................................... PASS
+ · The "demohub" container registry credential exists ................................................................................................................ PASS
+ · The "demogit" source control credential exists .................................................................................................................... PASS
+ · The "demoinv" inventory exists .................................................................................................................................... PASS
+ · The serverc system is declared in the inventory ................................................................................................................... PASS
+ · The "demoproj" project exists ..................................................................................................................................... PASS
+ · The "demoee" automation execution environment exists .............................................................................................................. PASS
+ · The "demotest" job template exists ................................................................................................................................ PASS
+ · The iSCSI target is configured on serverc ......................................................................................................................... PASS
+
+Overall lab grade: PASS
+
+[1]+  Done                    firefox https://hub.lab.example.com  (wd: ~/review-cr3/review/system)
+(wd now: ~)
+[student@workstation ~]$ 
+[student@workstation ~]$ lab finish review-cr3 
+
+Finishing lab.
+
+ · Checking lab systems .............................................................................................................................................. SUCCESS
+ · Cleaning up the systems ........................................................................................................................................... SUCCESS
+ · Restoring the system configuration (be patient) ................................................................................................................... SUCCESS
+
+[student@workstation ~]$ 
+
